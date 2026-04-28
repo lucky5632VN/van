@@ -2,6 +2,99 @@
    lab.js — Main Lab Controller & SVG Renderers
    ============================================================ */
 
+// ——— AUDIO SYSTEM ———
+const AudioSystem = {
+  _alertAudio: null,
+  _shatterAudio: null,
+  _isMuted: false,
+  _volume: 0.7,
+
+  init() {
+    try {
+      this._alertAudio = new Audio('music/alert.mp3');
+      this._alertAudio.preload = 'auto';
+      this._alertAudio.volume = this._volume;
+
+      this._shatterAudio = new Audio('music/shatter.mp3');
+      this._shatterAudio.preload = 'auto';
+      this._shatterAudio.volume = this._volume;
+
+      this._explosionAudio = new Audio('music/explosion.mp3');
+      this._explosionAudio.preload = 'auto';
+      this._explosionAudio.volume = this._volume;
+    } catch(e) {
+      console.warn('[AudioSystem] Could not load audio files:', e);
+    }
+  },
+
+  /**
+   * Phát âm thanh cảnh báo
+   * @param {number} level - 1: warning (ngắn), 2: danger (đầy đủ)
+   */
+  playAlert(level = 2) {
+    if (this._isMuted || !this._alertAudio) return;
+    try {
+      this._alertAudio.currentTime = 0;
+      this._alertAudio.volume = level >= 2 ? this._volume : this._volume * 0.4;
+      // Dừng sau thời gian tương ứng level
+      const duration = level >= 2 ? 4000 : 1500;
+      this._alertAudio.play().catch(() => {});
+      if (level < 2) {
+        setTimeout(() => { try { this._alertAudio.pause(); } catch(e){} }, duration);
+      }
+    } catch(e) {
+      console.warn('[AudioSystem] playAlert error:', e);
+    }
+  },
+
+  stopAlert() {
+    if (!this._alertAudio) return;
+    try {
+      this._alertAudio.pause();
+      this._alertAudio.currentTime = 0;
+    } catch(e) {}
+  },
+
+  /**
+   * Phát âm thanh nổ và vỡ thủy tinh
+   */
+  playShatter() {
+    if (this._isMuted || !this._shatterAudio) return;
+    try {
+      this._shatterAudio.currentTime = 0;
+      this._shatterAudio.play().catch(() => {});
+    } catch(e) {
+      console.warn('[AudioSystem] playShatter error:', e);
+    }
+  },
+
+  /**
+   * Phát âm thanh nổ (không vỡ cốc)
+   */
+  playExplosion() {
+    if (this._isMuted || !this._explosionAudio) return;
+    try {
+      this._explosionAudio.currentTime = 0;
+      this._explosionAudio.play().catch(() => {});
+    } catch(e) {
+      console.warn('[AudioSystem] playExplosion error:', e);
+    }
+  },
+
+  setMuted(muted) {
+    this._isMuted = muted;
+    if (muted) this.stopAlert();
+  },
+
+  setVolume(vol) {
+    this._volume = Math.max(0, Math.min(1, vol));
+    if (this._alertAudio) this._alertAudio.volume = this._volume;
+  }
+};
+
+// Khởi tạo AudioSystem khi DOM sẵn sàng
+document.addEventListener('DOMContentLoaded', () => AudioSystem.init());
+
 // ——— STATE ———
 let state = {
   currentExperiment: 'free',
@@ -163,10 +256,14 @@ let welcomeSafetyState = {
 function toggleSafetyGear(type) {
   welcomeSafetyState[type] = !welcomeSafetyState[type];
   const el = document.getElementById('setup-' + type);
+  const statusEl = el.querySelector('.setup-status');
+  
   if (welcomeSafetyState[type]) {
     el.classList.add('equipped');
+    if (statusEl) statusEl.textContent = 'ĐÃ MẶC';
   } else {
     el.classList.remove('equipped');
+    if (statusEl) statusEl.textContent = 'CHƯA MẶC';
   }
   
   const allReady = welcomeSafetyState.goggles && welcomeSafetyState.gloves && welcomeSafetyState['lab-coat'];
@@ -179,11 +276,25 @@ function startExperience() {
   const intro = document.getElementById('introOverlay');
   intro.classList.add('hide');
   
-  // Show setup modal after a short delay for cinematic transition
+  // Show lab rules modal FIRST, then safety gear modal
+  setTimeout(() => {
+    const rulesModal = document.getElementById('labRulesModal');
+    if (rulesModal) {
+      rulesModal.classList.add('show');
+    } else {
+      document.getElementById('welcomeSetupModal').classList.add('show');
+    }
+    addLog('info', '[PROTOCOL_01] KHỞI CHẠY QUY TRÌNH KIỂM TRA NỘI QUY.');
+  }, 500);
+}
+
+function confirmLabRules() {
+  const rulesModal = document.getElementById('labRulesModal');
+  if (rulesModal) rulesModal.classList.remove('show');
   setTimeout(() => {
     document.getElementById('welcomeSetupModal').classList.add('show');
-    addLog('info', '🛡️ Bước 1: Trang bị bảo hộ cá nhân.');
-  }, 500);
+    addLog('info', '[PROTOCOL_02] NỘI QUY ĐÃ ĐƯỢC XÁC NHẬN. KIỂM TRA BẢO HỘ...');
+  }, 300);
 }
 
 function enterLab() {
@@ -200,19 +311,25 @@ function enterLab() {
   const controls = document.getElementById('headerControls');
   if (controls) controls.style.display = 'flex';
   
-  addLog('success', '🛡️ Trang bị bảo hộ hoàn tất! Tủ hút khí đã bật sẵn.');
+  addLog('success', '[HỆ_THỐNG] XÁC NHẬN AN TOÀN: THIẾT BỊ BẢO HỘ ĐÃ SẴN SÀNG.');
 }
 
 // ——— INIT ———
-document.addEventListener('DOMContentLoaded', () => {
+function initLab() {
   initIntroParticles();
   initCanvas();
   renderTools();
   renderChemicals();
   setupWorkspaceDrop();
   loadExperiment('electrolysis');
-  addLog('info', '🔬 Phòng thí nghiệm sẵn sàng. Chào mừng bạn!');
-});
+  addLog('info', '[HỆ_THỐNG] KHỞI CHẠY QUANTUM LAB CORE v2.5... TRẠNG THÁI: SẴN SÀNG.');
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initLab);
+} else {
+  initLab();
+}
 
 // ——— TOOL RENDERING (SVG) ———
 const SVG_RENDERERS = {
@@ -227,26 +344,36 @@ const SVG_RENDERERS = {
       <!-- Glass body -->
       <path d="M 8 8 L 8 130 Q 8 142 20 142 Q 32 142 32 130 L 32 8" 
         fill="rgba(224,242,254,0.1)" stroke="rgba(186,230,253,0.5)" stroke-width="1.5"/>
-      <!-- Liquid -->
-      ${liqH > 0 ? `
+      
+      <!-- Content (Solid or Liquid) -->
+      ${liqH > 0 ? (item.contentForm === 'solid' ? `
+        <!-- Solid Powder Pile -->
+        <path d="M 8 130 Q 8 142 20 142 Q 32 142 32 130 L 32 ${142 - liqH} Q 20 ${142 - liqH - 8} 8 ${142 - liqH} Z" 
+          fill="${liq}" opacity="1"/>
+      ` : `
+        <!-- Liquid Fill -->
         <path d="M 8 ${142 - liqH} L 8 130 Q 8 142 20 142 Q 32 142 32 130 L 32 ${142 - liqH} Z" 
           fill="${liq}" opacity="0.85"/>
         <ellipse cx="20" cy="${142 - liqH}" rx="12" ry="3" fill="${liq}"/>
-      ` : ''}
+      `) : ''}
+
       <!-- Sediment Layer (Kết tủa) -->
       ${precCol ? `
         <path d="M 8 135 L 8 130 Q 8 142 20 142 Q 32 142 32 130 L 32 135 Z"
           fill="${precCol}" opacity="0.95"/>
         <ellipse cx="20" cy="135" rx="12" ry="4" fill="${precCol}"/>
       ` : ''}
+      
       <!-- Reflections -->
       <line x1="12" y1="15" x2="12" y2="120" stroke="rgba(255,255,255,0.15)" stroke-width="2" stroke-linecap="round"/>
-      <!-- Gas bubbles (if active) -->
-      ${item.effervescing ? `
+      
+      <!-- Gas bubbles (Only if liquid) -->
+      ${(item.effervescing && item.contentForm !== 'solid') ? `
         <circle cx="16" cy="${142 - liqH/2}" r="1.5" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
         <circle cx="22" cy="${92 - liqH/2}" r="2" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
         <circle cx="32" cy="${88 - liqH/2}" r="1.5" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
       ` : ''}
+      
       <!-- Broken state overlay -->
       ${item.state === 'broken' ? `
         <path d="M20 40 L30 60 L25 80" stroke="#f87171" stroke-width="2" fill="none" opacity="0.7"/>
@@ -265,7 +392,14 @@ const SVG_RENDERERS = {
       <!-- Body -->
       <path d="M 12 10 L 6 82 Q 6 88 40 88 Q 74 88 74 82 L 68 10 Z"
         fill="rgba(224,242,254,0.1)" stroke="rgba(186,230,253,0.5)" stroke-width="1.5"/>
-      ${liqH > 0 ? `
+      
+      <!-- Content (Solid or Liquid) -->
+      ${liqH > 0 ? (item.contentForm === 'solid' ? `
+        <!-- Solid Powder Pile -->
+        <path d="M 6 82 Q 6 88 40 88 Q 74 88 74 82 L 74 ${90 - liqH} Q 40 ${90 - liqH - 12} 6 ${90 - liqH} Z" 
+          fill="${liq}" opacity="1"/>
+      ` : `
+        <!-- Liquid Fill -->
         <path d="M ${12 + (60*(90-10-liqH)/80)} ${90 - liqH}
                  L ${6 + 2*(90-liqH-10)/8} ${90 - liqH}
                  Q 6 ${90-liqH} 6 ${90-liqH+4}
@@ -274,7 +408,8 @@ const SVG_RENDERERS = {
           fill="${liq}" opacity="0.9"/>
         <ellipse cx="40" cy="${90 - liqH}" rx="${28 + (liqH/90)*5}" ry="4" fill="${liq}"/>
         <ellipse cx="40" cy="${90 - liqH}" rx="${28 + (liqH/90)*5}" ry="4" fill="rgba(255,255,255,0.12)"/>
-      ` : ''}
+      `) : ''}
+
       <!-- Sediment Layer (Kết tủa) -->
       ${precCol ? `
         <path d="M 6.3 78 L 6 82 Q 6 88 40 88 Q 74 88 74 82 L 73.7 78 Z"
@@ -309,12 +444,20 @@ const SVG_RENDERERS = {
       <!-- Flask body -->
       <path d="M 30 40 L 10 100 Q 10 108 40 108 Q 70 108 70 100 L 50 40 Z"
         fill="rgba(224,242,254,0.08)" stroke="rgba(186,230,253,0.5)" stroke-width="1.5"/>
-      ${liqH > 0 ? `
+      
+      <!-- Content (Solid or Liquid) -->
+      ${liqH > 0 ? (item.contentForm === 'solid' ? `
+        <!-- Solid Powder Pile -->
+        <path d="M 12 104 Q 10 108 40 108 Q 70 108 68 104 L 56 ${108 - liqH} Q 40 ${108 - liqH - 12} 24 ${108 - liqH} Z" 
+          fill="${liq}" opacity="1" clip-path="url(#fc-${item.uid})"/>
+      ` : `
+        <!-- Liquid Fill -->
         <rect x="10" y="${108 - liqH}" width="60" height="${liqH}" 
           fill="${liq}" clip-path="url(#fc-${item.uid})"/>
         <ellipse cx="40" cy="${108 - liqH}" rx="30" ry="4" fill="${liq}" 
           clip-path="url(#fc-${item.uid})" opacity="0.8"/>
-      ` : ''}
+      `) : ''}
+
       <!-- Sediment Layer (Kết tủa) -->
       ${precCol ? `
         <path d="M 12 95 L 10 100 Q 10 108 40 108 Q 70 108 70 100 L 68 95 Z"
@@ -336,30 +479,32 @@ const SVG_RENDERERS = {
     const on = item.state === 'on';
     return `
     <svg width="60" height="80" viewBox="0 0 60 80">
-      <!-- Base -->
-      <rect x="10" y="65" width="40" height="10" rx="4"
-        fill="#334155" stroke="#475569" stroke-width="1.5"/>
-      <!-- Barrel -->
-      <rect x="24" y="20" width="12" height="48" rx="3"
-        fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
-      <!-- Air holes -->
-      <circle cx="30" cy="40" r="2" fill="#0f172a"/>
-      <circle cx="30" cy="50" r="2" fill="#0f172a"/>
-      <!-- Nozzle -->
-      <ellipse cx="30" cy="20" rx="8" ry="3" fill="#334155" stroke="#475569" stroke-width="1"/>
+      <!-- Glass Bottle Body -->
+      <path d="M 12 75 Q 10 75 10 70 L 10 45 Q 10 30 30 30 Q 50 30 50 45 L 50 70 Q 50 75 48 75 Z"
+        fill="rgba(224,242,254,0.15)" stroke="rgba(186,230,253,0.5)" stroke-width="1.5"/>
+      
+      <!-- Alcohol Liquid (Violet tint) -->
+      <path d="M 10 70 Q 10 75 30 75 Q 50 75 50 70 L 50 50 Q 30 45 10 50 Z"
+        fill="rgba(139,92,246,0.3)" opacity="0.8"/>
+      
+      <!-- Metallic Cap -->
+      <rect x="24" y="25" width="12" height="8" rx="2" fill="#64748b" stroke="#475569" stroke-width="1"/>
+      
       ${on ? `
-        <!-- Flame (animated via CSS class) -->
-        <ellipse cx="30" cy="16" rx="6" ry="8" fill="rgba(251,191,36,0.3)"
-          class="heating"/>
-        <ellipse cx="30" cy="14" rx="4" ry="6" fill="rgba(251,191,36,0.6)"/>
-        <ellipse cx="30" cy="11" rx="3" ry="5" fill="rgba(254,240,138,0.8)"/>
-        <ellipse cx="30" cy="8" rx="2" ry="3" fill="#fff" opacity="0.9"/>
+        <!-- Flame (Spirit Lamp Flame) -->
+        <g class="heating">
+          <path d="M 30 25 Q 22 15 30 0 Q 38 15 30 25 Z" fill="rgba(251,191,36,0.4)"/>
+          <path d="M 30 25 Q 26 18 30 8 Q 34 18 30 25 Z" fill="rgba(251,191,36,0.8)"/>
+          <path d="M 30 25 Q 28 20 30 15 Q 32 20 30 25 Z" fill="#fff" opacity="0.9"/>
+        </g>
       ` : `
         <!-- Wick -->
-        <line x1="30" y1="20" x2="30" y2="14" stroke="#6b7280" stroke-width="2"/>
+        <rect x="28" y="15" width="4" height="12" rx="1" fill="#e2e8f0" stroke="#94a3b8" stroke-width="0.5"/>
+        <line x1="30" y1="15" x2="30" y2="10" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/>
       `}
-      <!-- Gas valve -->
-      <circle cx="42" cy="62" r="4" fill="#374151" stroke="#4b5563" stroke-width="1"/>
+      
+      <!-- Reflections -->
+      <path d="M 15 45 Q 15 35 25 35" stroke="rgba(255,255,255,0.2)" stroke-width="2" fill="none" stroke-linecap="round"/>
     </svg>`;
   },
 
@@ -575,6 +720,15 @@ const SVG_RENDERERS = {
       <circle cx="70" cy="18" r="1.5" fill="${on ? '#34d399' : '#374151'}" />
     </svg>`;
   },
+  labcoat: (item) => {
+    return `
+    <svg width="60" height="70" viewBox="0 0 60 70">
+      <path d="M 15 5 L 45 5 L 55 20 L 55 65 L 5 65 L 5 20 Z" fill="rgba(248, 250, 252, 0.2)" stroke="#94a3b8" stroke-width="2"/>
+      <path d="M 30 5 L 30 65" stroke="#94a3b8" stroke-width="1.5" />
+      <path d="M 22 5 L 30 15 L 38 5" fill="none" stroke="#94a3b8" stroke-width="1.5" />
+      <rect x="35" y="40" width="8" height="10" rx="1" fill="none" stroke="#94a3b8" stroke-width="1.5" />
+    </svg>`;
+  }
 };
 
 // ——— RENDER SIDEBAR TOOLS ———
@@ -597,7 +751,10 @@ function renderTools() {
     div.setAttribute('draggable', 'true');
     div.dataset.toolId = tool.id;
     div.dataset.type = 'tool';
-    const svgHTML = SVG_RENDERERS[tool.render] ? SVG_RENDERERS[tool.render]({ state: 'idle', equipped: false, active: false, liquidLevel: 0 }) : tool.icon;
+    const renderer = SVG_RENDERERS[tool.render];
+    const svgHTML = (typeof renderer === 'function') 
+      ? renderer({ state: 'idle', equipped: false, active: false, liquidLevel: 0 }) 
+      : `<span style="font-size: 24px;">${tool.icon || '📦'}</span>`;
     div.innerHTML = `
       <div class="premium-tool-icon" style="display:flex;align-items:center;justify-content:center; overflow:hidden;">
         <div style="transform: scale(0.35); transform-origin: center;">
@@ -644,8 +801,9 @@ function renderTools() {
       clearTimeout(hoverTimeout); hideTooltip(); isShowing = false;
       const surface = document.getElementById('workspaceSurface');
       const rect = surface.getBoundingClientRect();
-      const x = rect.width / 2;
-      const y = rect.height / 2;
+      // Adjust center to account for the 380px right panel
+      const x = (rect.width - 400) / 2;
+      const y = rect.height / 2 - 30;
       placeItemOnWorkspace('tool', tool.id, x, y);
     });
     grid.appendChild(div);
@@ -806,7 +964,7 @@ function renderChemicals(filter = '') {
     
     // Icon mapping for chemistry types
     const typeLabelMap = {
-      'acid': 'Axit', 'base': 'Bazơ', 'salt': 'Muối', 'oxide': 'Oxit', 
+      'acid': 'Acid', 'base': 'Base', 'salt': 'Muối', 'oxide': 'Oxit', 
       'metal': 'Kim loại', 'nonmetal': 'Phi kim', 'organic': 'Hữu cơ', 
       'gas': 'Chất khí', 'special': 'Đặc biệt', 'indicator': 'Chỉ thị'
     };
@@ -829,6 +987,14 @@ function renderChemicals(filter = '') {
         <div class="chem-badges">
           ${badges.map(b => `<span class="badge ${b}">${b}</span>`).join('')}
           ${chem.isVirtual ? '<span class="badge v-db">V-DB</span>' : ''}
+        </div>
+        <div class="chem-ghs-icons">
+          ${(chem.hazards||[]).includes('corrosive') ? '<div class="ghs-diamond ghs-corrosive" title="Ăn mòn (GHS05)"><div class="ghs-symbol"></div></div>' : ''}
+          ${(chem.hazards||[]).includes('toxic') ? '<div class="ghs-diamond ghs-toxic" title="Độc (GHS06)"><div class="ghs-symbol"></div></div>' : ''}
+          ${(chem.hazards||[]).includes('flammable') ? '<div class="ghs-diamond ghs-flammable" title="Dễ cháy (GHS02)"><div class="ghs-symbol"></div></div>' : ''}
+          ${(chem.hazards||[]).includes('oxidizer') ? '<div class="ghs-diamond ghs-oxidizer" title="Oxy hóa (GHS03)"><div class="ghs-symbol"></div></div>' : ''}
+          ${(chem.hazards||[]).includes('explosive') ? '<div class="ghs-diamond ghs-explosive" title="Nổ (GHS01)"><div class="ghs-symbol"></div></div>' : ''}
+          ${(chem.hazards||[]).includes('hazard') ? '<div class="ghs-diamond ghs-hazard" title="Nguy hiểm (GHS07)"><div class="ghs-symbol"></div></div>' : ''}
         </div>
       </div>
     `;
@@ -889,7 +1055,7 @@ function renderChemicals(filter = '') {
         if (selected && (selected.toolId === 'dropper' || selected.toolId === 'pipette')) {
           selected.holdingColor = chem.liquidColor || 'rgba(186,230,253,0.5)';
           selected.holdingChemicals = [chem];
-          addLog('info', `🧪 ${selected.name} đã lấy trực tiếp ${chem.formula}.`);
+          addLog('info', `[TÍN_HIỆU] ĐÃ LẤY TRỰC TIẾP ${chem.formula}.`);
           refreshWorkspaceItem(selected);
           return;
         }
@@ -897,8 +1063,9 @@ function renderChemicals(filter = '') {
       
       const surface = document.getElementById('workspaceSurface');
       const rect = surface.getBoundingClientRect();
-      const x = rect.width / 2;
-      const y = rect.height / 2;
+      // Adjust center to account for the 380px right panel
+      const x = (rect.width - 400) / 2;
+      const y = rect.height / 2 - 30;
       placeItemOnWorkspace('chemical', chem.id, x, y);
     });
     fragment.appendChild(div);
@@ -934,6 +1101,22 @@ function startDragFromSidebar(e, type, id) {
   // Cache surface rect for performance
   const surface = document.getElementById('workspaceSurface');
   if (surface) _dragSurfaceRect = surface.getBoundingClientRect();
+
+  // --- IDCL: SAFETY INTERLOCK CHECK ---
+  if (type === 'chemical') {
+    if (window.ChemistryEngine && window.ChemistryEngine.SafetyWatcher) {
+      const violations = window.ChemistryEngine.SafetyWatcher.checkViolation(id, {
+        isFumeHoodOn: state.safetyEquipped.has('fume-hood'),
+        equippedPPE: state.safetyEquipped
+      });
+      
+      if (violations) {
+        state.isDragging = false;
+        triggerSystemFreeze(violations, id);
+        return; // Dừng việc kéo thả ngay lập tức
+      }
+    }
+  }
 
   // Create ghost
   ghostEl = document.createElement('div');
@@ -990,6 +1173,7 @@ function moveDragGhost(e) {
 
 function setupWorkspaceDrop() {
   const surface = document.getElementById('workspaceSurface');
+
   surface.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
@@ -1107,14 +1291,22 @@ function tryDropChemicalOnContainer(chemItem, dropX, dropY) {
 }
 
 // ——— ADD CHEMICAL TO CONTAINER ———
-function addChemicalToContainer(container, chemItem) {
-  if (container.isReacting) {
-    addLog('warning', '⚠️ Phản ứng đang chuẩn bị diễn ra, không thể thêm chất lúc này!');
-    return;
-  }
+function addChemicalToContainer(container, chemItem, customIncrement = null) {
+  // Cho phép nạp chất ngay cả khi đang phản ứng (Realistic)
 
   const chem = CHEMICALS.find(c => c.id === chemItem.chemId) || window.ALL_ITEMS?.find(c => c.id === chemItem.chemId);
   if (!chem) return;
+
+  // --- IDCL: EMIT POUR EVENT FOR OBSERVER ---
+  // Lấy đúng lượng thực tế người dùng đã nhập (_configType = 'mass' hoặc 'molarity')
+  const actualAmount = parseFloat(chemItem.mass || chemItem.molarity || 5);
+  window.dispatchEvent(new CustomEvent('chemistry:pour', {
+    detail: {
+      chemicalId: chem.id,
+      volume: actualAmount, // g nếu là mass, M nếu là molarity
+      configType: chemItem.molarity ? 'molarity' : 'mass'
+    }
+  }));
 
   // --- NEW: FUNNEL FILTRATION CHECK ---
   const attachedFunnel = state.workspaceItems.find(it => it.toolId === 'funnel' && it.attachedTo === container.uid);
@@ -1125,29 +1317,39 @@ function addChemicalToContainer(container, chemItem) {
       attachedFunnel.precipitates.push(chem.id);
       addLog('info', `📥 ${chem.name} bị giữ lại trên phễu lọc.`);
       refreshWorkspaceItem(attachedFunnel);
-      return; // Solid does not enter container
+      return; 
     }
   }
 
   container.chemicals.push(chem);
 
+  // --- NEW: DETERMINE CONTENT FORM ---
+  const isLiquidChem = (c) => {
+    if (c.id === 'h2o') return true;
+    if (c.form === 'liquid' || c.form === 'gas') return true;
+    if (c.type === 'acid' || c.type === 'base') return c.form !== 'solid';
+    return false;
+  };
+
+  const hasLiquid = container.chemicals.some(isLiquidChem);
+  container.contentForm = hasLiquid ? 'liquid' : 'solid';
+
   // --- NEW: CALCULATIVE ENGINE INTEGRATION ---
   if (window.ChemistryEngine) {
-    // 1. Calculate new pH
     container.ph = window.ChemistryEngine.calculatePH(container.chemicals);
-    
-    // 2. Calculate new color
     container.liquidColor = window.ChemistryEngine.calculateSolutionColor(container.chemicals, container.ph);
     
-    // 3. Update level
-    container.liquidLevel = Math.min((container.liquidLevel || 0) + 20, 85);
+    // Custom drop size for precision work
+    const levelInc = customIncrement || (container.contentForm === 'solid' ? 12 : 20);
+    container.liquidLevel = Math.min((container.liquidLevel || 0) + levelInc, 85);
 
     // 4. Safety Check
     const risk = window.ChemistryEngine.checkSafetyRisk(container.chemicals, container);
     if (risk) {
       addLog('danger', risk.message);
       if (risk.type === 'fire') {
-        triggerReactionEffect('bubbles-intense', container.x + 40, container.y + 40, { color: '#f59e0b' });
+        const scale = container.scale || 1;
+        triggerReactionEffect('bubbles-intense', container.x + 40 * scale, container.y + 40 * scale, { color: '#f59e0b' }, scale);
         showDanger('⚠️ SỰ CỐ AN TOÀN', risk.message);
       }
     }
@@ -1188,11 +1390,11 @@ function checkLitmusInContainer(container, addedChem) {
       if (ph < 6.5) { // Acid range
         if (litmus.litmusState === 'red') return;
         litmus.litmusState = 'red';
-        addLog('warning', `🔴 Quỳ chuyển ĐỎ — Môi trường AXIT (pH ≈ ${ph.toFixed(1)})`);
+        addLog('warning', `🔴 Quỳ chuyển ĐỎ — Môi trường ACID (pH ≈ ${ph.toFixed(1)})`);
       } else if (ph > 7.5) { // Base range
         if (litmus.litmusState === 'blue') return;
         litmus.litmusState = 'blue';
-        addLog('success', `🔵 Quỳ chuyển XANH — Môi trường BAZƠ (pH ≈ ${ph.toFixed(1)})`);
+        addLog('success', `🔵 Quỳ chuyển XANH — Môi trường BASE (pH ≈ ${ph.toFixed(1)})`);
       } else { // Neutral range
         if (litmus.litmusState === 'purple') return;
         litmus.litmusState = 'purple';
@@ -1372,11 +1574,27 @@ function checkReaction(beaker) {
     }
   }
 
+  // --- NEW: ADVANCED 3-COMPONENT REACTION CHECK ---
+  if (contents.length >= 3) {
+    for (let i = 0; i < contents.length - 2; i++) {
+      for (let j = i + 1; j < contents.length - 1; j++) {
+        const ids = [contents[i].id, contents[j].id, newChem.id].sort();
+        const key = ids.join('+');
+        const rMatch = window.REACTIONS?.[key];
+        if (rMatch) {
+          executeReaction(beaker, rMatch);
+          return;
+        }
+      }
+    }
+  }
+
   if (contents.length < 2) return;
 
   // 3. COMBUSTION CHECK (O2 + Heat)
   if (window.ChemistryEngine) {
-    const combustion = window.ChemistryEngine.checkCombustion(contents, state.environment);
+    const localEnv = { ...(state.environment || {}), isHeating: beaker.isHeating };
+    const combustion = window.ChemistryEngine.checkCombustion(contents, localEnv);
     if (combustion) {
       const effect = window.PHENOMENA_DB.getCombustionEffect(combustion.fuel.id);
       executeReaction(beaker, {
@@ -1390,26 +1608,37 @@ function checkReaction(beaker) {
     }
   }
 
+  // --- NEW: SYNTHESIS / PREPARATION CHECK ---
+  if (window.ChemistryEngine) {
+    const localEnv = { ...(state.environment || {}), isHeating: beaker.isHeating };
+    const synth = window.ChemistryEngine.checkSynthesisReactions(contents, localEnv);
+    if (synth) {
+      if (synth.type === 'hint') {
+        // Chỉ log gợi ý nếu chưa log gần đây cho beaker này
+        if (!beaker._lastHintId || beaker._lastHintId !== synth.id) {
+          addLog('info', synth.message);
+          beaker._lastHintId = synth.id;
+        }
+        return;
+      }
+      
+      const rData = window.REACTIONS[synth.key] || window.HEAT_REACTIONS[synth.key];
+      if (rData) {
+        executeReaction(beaker, rData);
+        // Reset hint khi phản ứng thật sự xảy ra
+        beaker._lastHintId = null;
+        return;
+      }
+    }
+  }
+
   // 4. GUNPOWDER REACTION CHECK (3 agents)
   if (window.ChemistryEngine) {
-    const gunpowder = window.ChemistryEngine.checkGunpowder(contents, state.environment);
+    const localEnv = { ...(state.environment || {}), isHeating: beaker.isHeating };
+    const gunpowder = window.ChemistryEngine.checkGunpowder(contents, localEnv);
     if (gunpowder) {
-      if (gunpowder.type === 'gunpowder_explosion') {
-        executeReaction(beaker, {
-          equation: gunpowder.equation,
-          type: 'explosion',
-          effect: 'explosion-violent',
-          observation: '💣 THUỐC SÚNG ĐEN PHÁT NỔ! Phòng thí nghiệm bị phá hủy!',
-          synthesis: { name: '💣 THUỐC SÚNG ĐEN PHÁT NỔ!', icon: '💥', category: 'Vũ khí / Pháo hoa' },
-          logType: 'danger',
-          hazardLevel: 3,
-          hazardType: 'explosion',
-          shatter: true,
-          colorChange: { end: '#fbbf24' }
-        });
-        return;
-      } else if (gunpowder.type === 'gunpowder_mixture') {
-        // Chỉ hiện lần đầu khi đủ 3 thành phần — KHÔNG dùng modal cảnh báo (chưa có nhiệt)
+      // ƯU TIÊN hiển thị hỗn hợp trước nếu chưa mixed, trừ khi đang đun nóng thì nổ ngay
+      if (gunpowder.type === 'gunpowder_mixture' || (gunpowder.type === 'gunpowder_explosion' && !beaker._gunpowderMixed)) {
         const isAlreadyMixed = beaker._gunpowderMixed;
         if (!isAlreadyMixed) {
           beaker._gunpowderMixed = true;
@@ -1417,7 +1646,6 @@ function checkReaction(beaker) {
           beaker.liquidColor = 'rgba(20,15,10,0.95)';
           beaker.liquidLevel = Math.max(beaker.liquidLevel || 0, 40);
           
-          // Hiện synthesis banner + log — KHÔNG hiện modal nguy hiểm (hazardLevel=0)
           updateActiveReactionDisplay({
             equation: '2KNO₃ + S + 3C ⟶ Hỗn hợp thuốc súng đen',
             observation: '🧨 Hỗn hợp bột đen hình thành. Thêm nguồn NHIỆT để kích nổ!',
@@ -1425,7 +1653,19 @@ function checkReaction(beaker) {
           });
           addLog('danger', '💣 Đã tạo hỗn hợp thuốc súng đen! ĐỪNG đưa gần lửa!');
           refreshWorkspaceItem(beaker);
+          
+          // Nếu đang đun nóng thì nổ ngay sau khi hiện thông báo
+          if (localEnv.isHeating) {
+            setTimeout(() => {
+              triggerGunpowderExplosion(beaker, gunpowder);
+            }, 1500);
+            return;
+          }
         }
+      } 
+      
+      if (gunpowder.type === 'gunpowder_explosion' && beaker._gunpowderMixed) {
+        triggerGunpowderExplosion(beaker, gunpowder);
         return;
       }
     }
@@ -1589,6 +1829,10 @@ function checkDissolution(container, reagent) {
 
 // ——— EXECUTE REACTION ———
 function executeReaction(container, reaction) {
+  // Clear old display info before starting new one
+  const rd = document.getElementById('activeReactionDisplay');
+  if (rd) rd.style.opacity = '1';
+
   const isDangerous = (reaction.hazardLevel >= 2);
   let missingSafety = [];
 
@@ -1604,29 +1848,18 @@ function executeReaction(container, reaction) {
 
     // Flash màn hình nếu phản ứng chân thực (nổ/cháy)
     if (isDangerous) {
-      const flash = document.createElement('div');
-      flash.style.position = 'fixed';
-      flash.style.inset = '0';
-      flash.style.backgroundColor = 'white';
-      flash.style.zIndex = '9999';
-      flash.style.opacity = '0.9';
-      flash.style.transition = 'opacity 0.8s ease-out';
-      flash.style.pointerEvents = 'none';
-      document.body.appendChild(flash);
+      if (typeof window.triggerFlash === 'function') window.triggerFlash();
       
       // Kích hoạt nổ rung lắc mạnh
       document.body.classList.add('shake');
-      
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          flash.style.opacity = '0';
-        });
-      });
       setTimeout(() => {
-        flash.remove();
         document.body.classList.remove('shake');
-      }, 800);
+      }, 1000);
     }
+
+    // Bật trạng thái phản ứng để vẽ Ma trận Phân tử
+    container.isReacting = true;
+    setTimeout(() => { if(container) container.isReacting = false; }, 8000);
 
     // Apply color change
     if (reaction.colorChange?.end) {
@@ -1649,9 +1882,15 @@ function executeReaction(container, reaction) {
     }
 
     // Particle effects
-    const cx = container.x + 40;
-    const cy = container.y + (container.liquidLevel ? (100 - container.liquidLevel) : 40);
-    triggerReactionEffect(reaction.effect, cx, cy, reaction);
+    const scale = container.scale || 1;
+    const cx = container.x + 40 * scale;
+    const cy = container.y + (container.liquidLevel ? (100 - container.liquidLevel) : 40) * scale;
+    triggerReactionEffect(reaction.effect, cx, cy, reaction, scale);
+
+    // Âm thanh nổ (nếu không vỡ)
+    if (reaction.type === 'explosion' && !reaction.shatter) {
+        AudioSystem.playExplosion();
+    }
 
     // Toxic gas overlay
     if (reaction.toxicGas) {
@@ -1662,7 +1901,9 @@ function executeReaction(container, reaction) {
     // Thiết lập vỡ cốc
     if (reaction.shatter) {
         setTimeout(() => {
-            addLog('danger', `💥 VỤ NỐ QUÁ LỚN! Dụng cụ chứa đã bị phá hủy!`);
+            addLog('danger', `💥 VỤ NỔ QUÁ LỚN! Dụng cụ chứa đã bị phá hủy!`);
+            // Phát âm thanh vỡ
+            AudioSystem.playShatter();
             // Xóa cốc
             const index = state.workspaceItems.findIndex(it => it.uid === container.uid);
             if (index !== -1) {
@@ -1674,20 +1915,30 @@ function executeReaction(container, reaction) {
     }
 
     // Log
-    addLog(reaction.logType || 'info', `⚗️ ${reaction.equation}`);
+    addLog(reaction.logType || 'info', `[PHẢN_ỨNG] ${reaction.equation}`);
     
     // Thermodynamic info
     if (window.ChemistryEngine) {
       const thermalDesc = window.ChemistryEngine.getThermalEffect(reaction);
-      addLog('info', `🔥 Nhiệt động lực: ${thermalDesc}`);
+      addLog('info', `[NHIỆT_ĐỘNG] ${thermalDesc}`);
     }
 
     if (reaction.observation) {
-      addLog('warning', `👁️ ${reaction.observation}`);
+      addLog('warning', `[QUAN_SÁT] ${reaction.observation}`);
     }
 
     // Cập nhật bảng hiển thị phản ứng persistent
     updateActiveReactionDisplay(reaction);
+
+    // --- IDCL: EMIT REACTION COMPLETE EVENT (Observer Pattern) ---
+    window.dispatchEvent(new CustomEvent('chemistry:reaction-complete', {
+      detail: {
+        equation: reaction.equation,
+        type: reaction.type,
+        reactants: container.chemicals.map(c => c.id),
+        container: { uid: container.uid }
+      }
+    }));
 
     // Refresh
     refreshWorkspaceItem(container);
@@ -1698,6 +1949,9 @@ function executeReaction(container, reaction) {
     container.isReacting = true;
     document.body.classList.add('shake'); // Rung nhẹ cảnh báo
     setTimeout(() => document.body.classList.remove('shake'), 400);
+
+    // 🔊 Phát âm thanh cảnh báo mức độ nguy hiểm cao
+    AudioSystem.playAlert(2);
 
     const safetyDict = { 'goggles': 'Kính bảo hộ', 'gloves': 'Găng tay', 'lab-coat': 'Áo Blouse', 'fume-hood': 'Tủ hút khí độc' };
     const translatedMissing = missingSafety.map(s => safetyDict[s] || s);
@@ -1712,7 +1966,7 @@ function executeReaction(container, reaction) {
         titleType = '☠️ NGUY HIỂM: KHÍ ĐỘC CHẾT NGƯỜI!';
         headerColor = '#9333ea'; // Purple for toxic
     } else if (reaction.hazardType === 'burn' || reaction.effect === 'acid-splatter') {
-        titleType = '🔥 CẢNH BÁO: BỎNG HÓA CHẤT / VĂNG BẮN AXIT!';
+        titleType = '🔥 CẢNH BÁO: BỎNG HÓA CHẤT / VĂNG BẮN ACID!';
         headerColor = '#ea580c'; // Orange for burn
     } else if (reaction.hazardType === 'explosion' || reaction.effect?.includes('explosion') || reaction.shatter) {
         titleType = '⚠️ CẢNH BÁO: NGUY CƠ CHÁY NỔ LỚN!';
@@ -1720,14 +1974,188 @@ function executeReaction(container, reaction) {
     }
 
     showDanger(titleType, warnMsg, () => {
+      // Dừng cảnh báo khi người dùng đã xác nhận
+      AudioSystem.stopAlert();
       container.isReacting = false;
-      performEffects();
+      // Đợi một chút sau khi tắt cảnh báo mới nổ (tạo độ kịch tính)
+      setTimeout(performEffects, 500);
     }, headerColor);
   } else {
     performEffects();
   }
 }
 
+
+
+/**
+ * Tự động tạo cơ chế giải thích học thuật dựa trên loại phản ứng
+ * @param {Object} reaction Đối tượng phản ứng từ data.js
+ * @returns {string} Chuỗi văn bản cơ chế đã được format
+ */
+function generateAcademicMechanism(reaction) {
+  const type = reaction.type || 'general';
+  const r = reaction.reactants || [];
+  const p = reaction.products || [];
+  
+  const templates = {
+    'precipitation': () => {
+      const p1 = p[0] || 'Chất mới';
+      return `Phản ứng trao đổi ion trong dung dịch. Các ion tự do di chuyển và va chạm với nhau. Ion dương và ion âm có ái lực mạnh kết hợp tạo thành mạng tinh thể của $${p1}$ không tan. Chất rắn này tách ra khỏi pha lỏng dưới dạng kết tủa.`;
+    },
+    'neutralization': () => {
+      return `Đây là phản ứng đặc trưng giữa acid và base. Các ion $H^+$ từ acid kết hợp với ion $OH^-$ từ base theo tỉ lệ 1:1. Sản phẩm tạo thành là phân tử nước ($H_2O$) rất bền vững, đồng thời giải phóng nhiệt lượng (phản ứng tỏa nhiệt).`;
+    },
+    'acid-metal': () => {
+      const m = r[0] || 'Kim loại';
+      return `Phản ứng oxy hóa - khử. Kim loại nhường electron cho các ion $H^+$ trong dung dịch acid. Ion $H^+$ bị khử thành các nguyên tử $H$, sau đó kết hợp thành phân tử khí $H_2$ bay ra ngoài. Kim loại bị oxy hóa thành ion dương và tan vào dung dịch.`;
+    },
+    'acid-carbonate': () => {
+      return `Acid mạnh tấn công vào gốc carbonate ($CO_3^{2-}$). Phản ứng tạo ra acid yếu $H_2CO_3$ không bền. Ngay lập tức, $H_2CO_3$ phân hủy thành nước và khí $CO_2$. Sự thoát khí mạnh mẽ tạo ra hiện tượng sủi bọt đặc trưng.`;
+    },
+    'thermal-decomposition': () => {
+      return `Dưới tác dụng của nhiệt năng, các liên kết hóa học trong phân tử bị bẻ gãy. Cấu trúc phức tạp ban đầu bị phân tách thành các chất đơn giản hơn. Phản ứng này thường hấp thụ nhiệt lượng từ môi trường để phá vỡ các liên kết nội phân tử.`;
+    },
+    'displacement': () => {
+      return `Phản ứng thế giữa kim loại mạnh và dung dịch muối. Kim loại mạnh hơn nhường electron cho ion kim loại yếu hơn trong dung dịch. Kim loại mạnh tan ra thành ion, còn kim loại yếu bị khử thành nguyên tử tự do và bám vào bề mặt chất rắn.`;
+    },
+    'gas-evolution': () => {
+      return `Các chất tham gia phản ứng tạo ra một sản phẩm ở trạng thái khí ở điều kiện thường. Do nồng độ khí vượt quá độ hòa tan trong chất lỏng, các phân tử khí tụ lại tạo thành bọt khí và thoát ra khỏi bề mặt dung dịch.`;
+    },
+    'combustion': () => {
+      return `Phản ứng oxy hóa mạnh với Oxy. Các liên kết trong chất cháy bị phá vỡ hoàn toàn, kết hợp với Oxy giải phóng lượng nhiệt và ánh sáng rất lớn. Sản phẩm thường là các oxide cao nhất của các nguyên tố thành phần.`;
+    },
+    'esterification': () => {
+      return `Xúc tác $H^+$ proton hóa nhóm carbonyl của acid, làm tăng hoạt tính điện tử. Phân tử rượu tấn công nucleophile vào carbon carbonyl tạo phức trung gian. Sau khi tách nước và loại proton, liên kết Ester được hình thành.`;
+    },
+    'saponification': () => {
+      return `Sự thủy phân Este trong môi trường kiềm. Ion $OH^-$ tấn công vào carbon của nhóm chức este. Liên kết $C-O$ bị đứt gãy, giải phóng rượu và tạo muối của acid béo (xà phòng). Đây là phản ứng một chiều.`;
+    },
+    'complexation': () => {
+      return `Sự hình thành liên kết phối trí. Ion kim loại trung tâm có các orbital trống nhận cặp electron tự do từ các ligand (như $NH_3$, $OH^-$). Kết quả tạo thành một ion phức có cấu trúc hình học xác định và màu sắc đặc trưng.`;
+    },
+    'halogen-replacement': () => {
+      return `Dựa trên độ hoạt động hóa học của các phi kim Halogen. Halogen mạnh hơn (ở trên trong nhóm VIIA) sẽ đẩy Halogen yếu hơn ra khỏi dung dịch muối của nó bằng cách chiếm lấy electron để trở thành ion âm bền vững hơn.`;
+    },
+    'hydrolysis': () => {
+      return `Sự phân hủy chất hóa học dưới tác dụng của phân tử nước. Nước tấn công vào các liên kết nhạy cảm (như liên kết peptide, este, hoặc muối của acid/base yếu) làm đứt gãy mạch phân tử ban đầu thành các mảnh nhỏ hơn.`;
+    },
+    'gunpowder_mixture': () => {
+      return `Hỗn hợp thuốc súng đen cơ bản gồm chất oxy hóa ($KNO_3$), chất khử ($C$) và chất nhạy nhiệt ($S$). Ở trạng thái tĩnh, các hạt chất rắn chỉ tiếp xúc bề mặt và chưa có phản ứng hóa học xảy ra.`;
+    },
+    'gunpowder_explosion': () => {
+      return `Khi có nhiệt độ kích hoạt, $KNO_3$ bị nhiệt phân giải phóng Oxy. Oxy nguyên tử cực kỳ hoạt động tấn công Carbon và Lưu huỳnh tạo ra phản ứng cháy chuỗi. Thể tích khí ($N_2, CO_2$) giãn nở đột ngột tạo ra áp suất cực lớn dẫn đến tiếng nổ.`;
+    },
+    'starch_test': () => {
+      return `Phân tử Amylase trong tinh bột có cấu trúc xoắn rỗng. Các phân tử Iot ($I_2$) chui vào bên trong các vòng xoắn này tạo thành phức chất màu xanh tím đặc trưng. Đây là hiện tượng vật lý hấp phụ, màu sẽ biến mất khi đun nóng.`;
+    },
+    'glucose+yeast': () => {
+      return `Dưới tác dụng của các enzyme trong men rượu, phân tử đường Glucose ($C_6H_{12}O_6$) bị phân giải. Quá trình chuyển hóa kỵ khí này giải phóng Ethanol ($C_2H_5OH$) và sủi bọt khí Carbon dioxide ($CO_2$).`;
+    },
+    'cac2+h2o': () => {
+      return `Canxi carbide ($CaC_2$) tác dụng mạnh với nước. Liên kết Carbide bị đứt gãy, nguyên tử Carbon kết hợp với Hydro tạo khí Acetylene ($C_2H_2$) có liên kết ba linh động. Đồng thời tạo ra vôi tôi ($Ca(OH)_2$) làm vẩn đục dung dịch.`;
+    },
+    'synthesis': () => {
+      return `Quá trình kết hợp các đơn chất hoặc hợp chất đơn giản để tạo thành một hợp chất mới phức tạp hơn. Phản ứng này thường yêu cầu điều kiện khơi mào như nhiệt độ cao hoặc xúc tác để phá vỡ các liên kết cũ.`;
+    },
+    'nitration': () => {
+      return `Phản ứng thế vào vòng thơm. Acid $H_2SO_4$ đặc đóng vai trò tách nước từ $HNO_3$ tạo ion nitronium ($NO_2^+$) cực kỳ hoạt động. Ion này tấn công vào các vị trí giàu mật độ electron để gắn nhóm $-NO_2$.`;
+    },
+    'oxidation': () => {
+      return `Sự tăng số oxy hóa của nguyên tố. Tác nhân oxy hóa mạnh (như $KMnO_4, K_2Cr_2O_7$) chiếm electron của chất khử, làm đứt gãy liên kết hoặc thay đổi bậc của nhóm chức trong hợp chất hữu cơ.`;
+    },
+    'redox-oxidizer': () => {
+      return `Phản ứng oxy hóa - khử mạnh. Chất oxy hóa mạnh chiếm electron từ chất khử (như $Cl^-$, kim loại), làm thay đổi trạng thái oxy hóa và tạo ra các sản phẩm mới như khí độc hoặc thay đổi màu sắc rõ rệt.`;
+    },
+    'redox-titration': () => {
+      return `Phản ứng chuẩn độ Oxy hóa - Khử. Phản ứng xảy ra định lượng và nhanh chóng. Điểm tương đương thường được nhận biết bằng sự mất màu của thuốc tím hoặc sự thay đổi màu sắc của các chỉ thị redox.`;
+    },
+    'complex-formation': () => {
+      return `Sự hình thành liên kết phối trí giữa ion kim loại trung tâm và các phối tử (Ligand). Các cặp electron tự do của phối tử đi vào các orbital trống của ion kim loại tạo thành phức chất tan có màu sắc rực rỡ.`;
+    },
+    'organic-redox': () => {
+      return `Sự thay đổi số oxy hóa trong các hợp chất hữu cơ. Ví dụ: nhóm Aldehyde bị oxy hóa thành nhóm Carboxyl, đồng thời ion kim loại ($Ag^+, Cu^{2+}$) bị khử thành kim loại hoặc oxide hóa trị thấp hơn.`;
+    },
+    'indicator-complex': () => {
+      return `Sự tương tác giữa chất chỉ thị và cơ chất (như Tinh bột và Iot). Đây thường là quá trình hấp phụ vật lý hoặc tạo phức bao bọc, tạo ra màu sắc đặc trưng giúp nhận biết sự có mặt của chất.`;
+    },
+    'amphoteric-reaction': () => {
+      return `Phản ứng của chất lưỡng tính (như $Al_2O_3, ZnO$). Chất này có khả năng phản ứng với cả acid mạnh và base mạnh để tạo ra muối tan, thể hiện tính chất hóa học linh hoạt.`;
+    },
+    'amphoteric-dissolution': () => {
+      return `Sự hòa tan kết tủa lưỡng tính trong kiềm dư. Kết tủa ban đầu (như $Al(OH)_3, Zn(OH)_2$) phản ứng tiếp với ion $OH^-$ dư để tạo thành các phức tan (Aluminate, Zincat), làm trong suốt dung dịch.`;
+    },
+    'color-test': () => {
+      return `Phản ứng định tính đặc trưng để nhận biết ion. Sự tạo thành một hợp chất có hằng số bền lớn và màu sắc cực kỳ nổi bật (như phức đỏ máu Fe(SCN)₃) giúp phát hiện vết của chất trong dung dịch.`;
+    },
+    'alkyne-recognition': () => {
+      return `Phản ứng thế nguyên tử $H$ linh động ở liên kết ba đầu mạch bằng ion kim loại ($Ag^+$). Phản ứng tạo ra kết tủa màu vàng đặc trưng, dùng để phân biệt Alkyne-1 với các hydrocarbon khác.`;
+    },
+    'addition': () => {
+      return `Phản ứng cộng vào liên kết bội ($C=C$ hoặc $C≡C$). Các tác nhân như $H_2, HCl, H_2O$ phá vỡ liên kết pi để gắn vào các nguyên tử carbon, làm bão hòa mạch hydrocarbon.`;
+    },
+    'hydration': () => {
+      return `Phản ứng cộng nước vào liên kết bội (thường cần xúc tác acid hoặc muối thủy ngân). Quá trình này biến alkene thành rượu hoặc alkyne thành aldehyde/ketone tương ứng.`;
+    },
+    'addition-halogen': () => {
+      return `Phản ứng cộng Halogen ($Br_2, Cl_2$) vào liên kết pi. Hiện tượng mất màu đặc trưng của dung dịch Halogen là dấu hiệu nhận biết các hợp chất hữu cơ không no.`;
+    },
+    'acid-base-gas': () => {
+      return `Phản ứng giữa acid và base ở trạng thái khí hoặc tạo sản phẩm khí ngay lập tức. Sự kết hợp tạo ra các hạt tinh thể muối siêu nhỏ lơ lửng trong không khí, tạo ra hiện tượng khói trắng ngoạn mục.`;
+    },
+    'metal-base': () => {
+      return `Phản ứng của kim loại lưỡng tính (như $Al, Zn$) với dung dịch kiềm mạnh. Kim loại vừa phá vỡ lớp oxide bảo vệ, vừa phản ứng giải phóng khí $H_2$ và tạo muối tan của kim loại trong base.`;
+    },
+    'acid-dilution-error': () => {
+      return `Phản ứng tỏa nhiệt cực lớn khi hòa tan các oxide acid đậm đặc (như $SO_3, H_2SO_4$ đặc) vào nước. Nhiệt lượng giải phóng làm nước sôi đột ngột và bắn ra ngoài cùng acid, cực kỳ nguy hiểm.`;
+    },
+    'no-reaction': () => {
+      return `Hệ thống không ghi nhận phản ứng hóa học xảy ra. Có thể do kim loại đứng sau Hydro trong dãy hoạt động, hoặc các chất tham gia không có ái lực hóa học đủ mạnh ở điều kiện hiện tại.`;
+    },
+    'acid-base': () => `Phản ứng trung hòa giữa acid và base tạo thành muối và nước. Các ion $H^+$ và $OH^-$ kết hợp tạo thành phân tử nước bền vững.`,
+    'acid-displacement': () => `Kim loại mạnh đẩy ion $H^+$ ra khỏi acid để giải phóng khí Hydro. Đây là phản ứng oxy hóa - khử điển hình.`,
+    'acid-oxide': () => `Acid tác dụng với oxide base tạo thành muối và nước. Đây là phản ứng trao đổi đặc trưng giúp hòa tan các oxide kim loại.`,
+    'oxide-acid': () => `Acid tác dụng với oxide base tạo thành muối và nước. Đây là phản ứng trao đổi đặc trưng giúp hòa tan các oxide kim loại.`,
+    'acid-salt': () => `Acid mạnh đẩy acid yếu ra khỏi muối, hoặc phản ứng tạo thành chất kết tủa/bay hơi. Đây là điều kiện để phản ứng trao đổi xảy ra.`,
+    'base-salt': () => `Base tác dụng với muối tạo thành base mới và muối mới. Điều kiện là ít nhất một trong hai sản phẩm phải là chất kết tủa hoặc bay hơi.`,
+    'salt-base': () => `Base tác dụng với muối tạo thành base mới và muối mới. Điều kiện là ít nhất một trong hai sản phẩm phải là chất kết tủa hoặc bay hơi.`,
+    'base-oxide': () => `Base (kiềm) tác dụng với oxide acid tạo thành muối và nước. Đây là phản ứng đặc trưng của các oxide phi kim.`,
+    'oxide-base': () => `Base (kiềm) tác dụng với oxide acid tạo thành muối và nước. Đây là phản ứng đặc trưng của các oxide phi kim.`,
+    'oxide-oxide': () => `Sự kết hợp giữa oxide base và oxide acid để tạo thành muối tương ứng ở nhiệt độ cao.`,
+    'oxide-water': () => `Oxide tác dụng với nước. Oxide base tan tạo thành dung dịch kiềm, oxide acid tan tạo thành dung dịch acid.`,
+    'metal-oxygen': () => `Kim loại phản ứng với Oxy tạo thành oxide kim loại. Phản ứng thường tỏa nhiều nhiệt và có thể kèm theo hiện tượng phát sáng (cháy).`,
+    'metal-water': () => `Kim loại mạnh (kiềm/kiềm thổ) tác dụng với nước ở nhiệt độ thường giải phóng khí $H_2$ và tạo thành dung dịch base mạnh.`,
+    'decomposition': () => `Sự phân tách một chất thành hai hay nhiều chất đơn giản hơn dưới tác dụng của nhiệt, điện hoặc ánh sáng.`,
+    'catalytic-decomposition': () => `Sự phân hủy chất dưới tác dụng của chất xúc tác (như $MnO_2$ cho $H_2O_2$). Chất xúc tác làm giảm năng lượng hoạt hóa, giúp phản ứng xảy ra nhanh hơn.`,
+    'equilibrium': () => `Phản ứng thuận nghịch. Ở trạng thái cân bằng, tốc độ phản ứng thuận bằng tốc độ phản ứng nghịch, nồng độ các chất trong hệ không thay đổi.`,
+    'dehydration': () => `Quá trình tách phân tử nước ra khỏi hợp chất. Acid $H_2SO_4$ đặc thường được dùng làm tác nhân hút nước mạnh trong các phản ứng này.`,
+    'hydrogenation': () => `Phản ứng cộng Hydro ($H_2$) vào liên kết bội dưới tác dụng của xúc tác ($Ni, Pd, Pt$) và nhiệt độ, biến hợp chất không no thành hợp chất no.`,
+    'ester': () => `Phản ứng giữa acid hữu cơ và rượu tạo thành este và nước. Đây là phản ứng thuận nghịch, thường cần acid mạnh làm xúc tác.`,
+    'ester-hydrolysis': () => `Sự thủy phân este trong môi trường acid (thuận nghịch) hoặc kiềm (một chiều - xà phòng hóa) để tái tạo lại rượu và acid/muối tương ứng.`,
+    'alkane-substitution': () => `Phản ứng đặc trưng của hydrocarbon no. Dưới tác dụng của ánh sáng, nguyên tử Halogen thế chỗ nguyên tử Hydro trong mạch carbon.`,
+    'high-temp-reduction': () => `Sự khử oxide kim loại bằng các chất khử mạnh ($C, CO, H_2, Al$) ở nhiệt độ cao để thu được kim loại tự do.`,
+    'redox': () => `Phản ứng oxy hóa - khử tổng quát, trong đó có sự chuyển dịch electron giữa các chất phản ứng, làm thay đổi số oxy hóa của các nguyên tố.`,
+    'organic-complex': () => `Sự hình thành phức chất hữu cơ (như phức đồng-saccarozo). Các nhóm chức hữu cơ đóng vai trò phối tử tạo liên kết phối trí với ion kim loại.`,
+    'organic-oxidation': () => `Sự oxy hóa các hợp chất hữu cơ bởi các tác nhân mạnh, thường dẫn đến sự thay đổi nhóm chức hoặc đứt gãy mạch carbon.`,
+    'organic-substitution': () => `Phản ứng thế trong hóa hữu cơ, nơi một nguyên tử hoặc nhóm nguyên tử được thay thế bằng một nhóm chức khác.`,
+    'organic-saponification': () => `Phản ứng thủy phân chất béo hoặc este trong môi trường kiềm để tạo ra xà phòng và glycerol.`,
+    'addition-polymerization': () => `Quá trình kết hợp nhiều monome thành polyme bằng cách đứt gãy liên kết pi mà không giải phóng phân tử nhỏ.`,
+    'elimination': () => `Phản ứng tách các nguyên tử từ hai carbon cạnh nhau để hình thành liên kết bội, thường kèm theo sự giải phóng phân tử nhỏ như nước hoặc $HX$.`,
+    'halide-hydrolysis': () => `Sự thủy phân dẫn xuất halogen trong môi trường kiềm để tạo thành rượu hoặc muối tương ứng.`,
+    'dissolution': () => `Quá trình hòa tan chất rắn vào dung dịch. Các phân tử dung môi bao quanh và tách các hạt chất tan ra khỏi khối chất rắn.`,
+    'diffusion': () => `Sự khuếch tán của các phân tử khí hoặc chất tan từ vùng có nồng độ cao đến vùng có nồng độ thấp do chuyển động nhiệt.`,
+    'gas-reaction': () => `Phản ứng xảy ra giữa các chất ở trạng thái khí, thường có tốc độ phản ứng rất nhanh do các phân tử va chạm dễ dàng.`,
+    'Nhiệt phân đá vôi': () => `Sự phân hủy $CaCO_3$ ở nhiệt độ cao (khoảng $900^\circ C$) để tạo thành vôi sống ($CaO$) và khí $CO_2$. Đây là phản ứng thu nhiệt mạnh.`,
+    'Nhiệt phân muối kiềm': () => `Sự phân hủy các muối nitrate hoặc chlorate của kim loại kiềm giải phóng Oxy, tạo ra môi trường oxy hóa cực mạnh.`,
+    'Phân hủy base không tan': () => `Các base không tan (như $Cu(OH)_2, Fe(OH)_3$) bị nhiệt phân tạo thành oxide kim loại và nước.`,
+    'Phân hủy giải phóng Oxi': () => `Phản ứng phân hủy các hợp chất giàu Oxy (như $KClO_3, KMnO_4$) để thu khí Oxy trong phòng thí nghiệm.`
+  };
+
+  const genFn = templates[type] || (() => {
+    if (reaction.description) return reaction.description;
+    return 'Cơ chế phản ứng đang được hệ thống phân tích. Vui lòng quan sát hiện tượng thực tế và phương trình hóa học hiển thị bên phải.';
+  });
+  return genFn();
+}
 
 function updateActiveReactionDisplay(reaction) {
 
@@ -1736,6 +2164,9 @@ function updateActiveReactionDisplay(reaction) {
   const obsEl = document.getElementById('ardObservation');
   
   if (!display || !eqEl || !obsEl) return;
+
+  // Notify Chatbot AI
+  if (window.chatbot) window.chatbot.notify('reaction', reaction);
 
   // Format equation with subscripts if needed
   let displayEq = (reaction.equation || '').replace(/->/g, '→');
@@ -1748,6 +2179,121 @@ function updateActiveReactionDisplay(reaction) {
 
   eqEl.textContent = displayEq;
   obsEl.innerHTML = (reaction.observation || '').replace(/\*\*/g, '<strong>').replace(/<strong>/g, '</strong>');
+
+  // Remove old ardExplanation logic, redirect to new panel
+  let textToShow = reaction.mechanism || generateAcademicMechanism(reaction);
+  const acaDisplay = document.getElementById('academicExplanationDisplay');
+  const acaText = document.getElementById('academicExplanationText');
+  
+  if (acaDisplay && acaText) {
+    if (textToShow) {
+      let formattedText = textToShow.replace(/\$([^\$]+)\$/g, (match, formula) => {
+        let res = formula.replace(/_\{([^}]+)\}/g, '<sub>$1</sub>');
+        res = res.replace(/_([a-zA-Z0-9]+)/g, '<sub>$1</sub>');
+        res = res.replace(/\^\{([^}]+)\}/g, '<sup>$1</sup>');
+        res = res.replace(/\^([a-zA-Z0-9+\-]+)/g, '<sup>$1</sup>');
+        res = res.replace(/\\circ/g, '°');
+        res = res.replace(/\\Delta/g, 'Δ');
+        res = res.replace(/\\approx/g, '≈');
+        res = res.replace(/\\rightarrow/g, '→');
+        return `<span style="font-family:'Orbitron',sans-serif; color:#38bdf8; font-weight:500;">${res}</span>`;
+      });
+      // Split into steps based on ". "
+      let steps = formattedText.split('. ').filter(s => s.trim().length > 0);
+      steps = steps.map(s => s.endsWith('.') ? s : s + '.');
+      
+      window.acaCurrentSteps = steps;
+      window.acaCurrentIndex = 0;
+      
+      window.acaRenderStep = () => {
+         const idx = window.acaCurrentIndex;
+         acaText.innerHTML = window.acaCurrentSteps[idx];
+         document.getElementById('acaStepIndicator').innerText = `Bước ${idx + 1} / ${window.acaCurrentSteps.length}`;
+         
+         const btnPrev = document.getElementById('acaBtnPrev');
+         const btnNext = document.getElementById('acaBtnNext');
+         
+         btnPrev.style.opacity = idx === 0 ? '0.3' : '1';
+         btnPrev.style.pointerEvents = idx === 0 ? 'none' : 'auto';
+         
+         btnNext.style.opacity = idx === window.acaCurrentSteps.length - 1 ? '0.3' : '1';
+         btnNext.style.pointerEvents = idx === window.acaCurrentSteps.length - 1 ? 'none' : 'auto';
+      };
+      
+      window.acaNextStep = () => {
+        if (window.acaCurrentIndex < window.acaCurrentSteps.length - 1) {
+          window.acaCurrentIndex++;
+          window.acaRenderStep();
+          if (window._acaTimeout) {
+            clearTimeout(window._acaTimeout); // stop auto-hide when user interacts
+          }
+        }
+      };
+      
+      window.acaPrevStep = () => {
+        if (window.acaCurrentIndex > 0) {
+          window.acaCurrentIndex--;
+          window.acaRenderStep();
+          if (window._acaTimeout) {
+            clearTimeout(window._acaTimeout);
+          }
+        }
+      };
+      
+      window.acaRenderStep();
+      acaDisplay.style.display = 'flex';
+      
+      // Auto-hide the academic panel along with the main one (only if user doesn't interact)
+      if (window._acaTimeout) clearTimeout(window._acaTimeout);
+      window._acaTimeout = setTimeout(() => {
+        acaDisplay.style.display = 'none';
+      }, 15000);
+      
+      // Initialize Draggable Logic
+      const dragHandle = document.getElementById('acaDragHandle');
+      if (dragHandle && !dragHandle.dataset.draggableInitialized) {
+        dragHandle.dataset.draggableInitialized = 'true';
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+        
+        dragHandle.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          const rect = acaDisplay.getBoundingClientRect();
+          initialLeft = rect.left;
+          initialTop = rect.top;
+          
+          acaDisplay.style.bottom = 'auto';
+          acaDisplay.style.right = 'auto';
+          acaDisplay.style.left = initialLeft + 'px';
+          acaDisplay.style.top = initialTop + 'px';
+          acaDisplay.style.transform = 'none';
+          
+          dragHandle.style.cursor = 'grabbing';
+          if (window._acaTimeout) clearTimeout(window._acaTimeout); // stop auto hide when dragged
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          acaDisplay.style.left = (initialLeft + dx) + 'px';
+          acaDisplay.style.top = (initialTop + dy) + 'px';
+        });
+        
+        document.addEventListener('mouseup', () => {
+          if (isDragging) {
+            isDragging = false;
+            dragHandle.style.cursor = 'grab';
+          }
+        });
+      }
+      
+    } else {
+      acaDisplay.style.display = 'none';
+    }
+  }
   
   // --- Hiển thị Synthesis (Ang đang điều chế gì) ---
   const synthEl = document.getElementById('ardSynthesis');
@@ -1816,6 +2362,13 @@ function renderWorkspaceItem(item) {
   el.dataset.uid = item.uid;
   el.style.left = item.x + 'px';
   el.style.top = item.y + 'px';
+  // Apply scale if set (zoom feature)
+  if (item.scale && item.scale !== 1) {
+    el.style.transformOrigin = 'top left';
+    el.style.setProperty('--item-scale', item.scale);
+  } else {
+    el.style.setProperty('--item-scale', '1');
+  }
 
   const svgFn = SVG_RENDERERS[item.render];
   let svgHtml = '';
@@ -1943,16 +2496,8 @@ function makeDraggable(el, item) {
     el.style.zIndex = '50';
 
     const onMove = (e2) => {
-      const surface = document.getElementById('workspaceSurface');
-      if (!surface) return;
-      const rect = surface.getBoundingClientRect();
-      
       let newX = startLeft + (e2.clientX - startX);
       let newY = startTop + (e2.clientY - startY);
-      
-      // Clamp coordinates (using offsets to keep items mostly contained)
-      newX = Math.max(-10, Math.min(newX, rect.width - 60));
-      newY = Math.max(-10, Math.min(newY, rect.height - 100));
 
       item.x = newX;
       item.y = newY;
@@ -1964,23 +2509,39 @@ function makeDraggable(el, item) {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       
-      // Snap inside on drop for strictness
-      const surface = document.getElementById('workspaceSurface');
-      if (surface) {
-        const rect = surface.getBoundingClientRect();
-        item.x = Math.max(10, Math.min(item.x, rect.width - 70));
-        item.y = Math.max(10, Math.min(item.y, rect.height - 100));
-        el.style.left = item.x + 'px';
-        el.style.top = item.y + 'px';
-      }
-
-      // Check if dropped onto another item for interaction
       handleDropInteractions(item);
     };
 
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   });
+
+  // ——— SCROLL WHEEL ZOOM (All items) ———
+  el.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    const oldScale = item.scale || 1.0;
+    const newScale = Math.min(2.0, Math.max(0.5, +(oldScale + delta).toFixed(1)));
+    if (newScale === oldScale) return;
+    item.scale = newScale;
+    
+    // Apply scale via CSS variable for consistency with selection effects
+    el.style.transformOrigin = 'top left';
+    el.style.setProperty('--item-scale', newScale);
+    
+    // Show scale badge
+    let badge = el.querySelector('.scale-badge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.className = 'scale-badge';
+      el.appendChild(badge);
+    }
+    badge.textContent = Math.round(newScale * 100) + '%';
+    badge.style.opacity = '1';
+    clearTimeout(el._scaleBadgeTimer);
+    el._scaleBadgeTimer = setTimeout(() => { if(badge) badge.style.opacity = '0'; }, 1200);
+  }, { passive: false });
 }
 
 // Kiểm tra va chạm giữa hai vật thể dựa trên vùng bao (AABB)
@@ -2047,7 +2608,9 @@ function toggleBunsen(item) {
 
   if (item.state === 'on') {
     state.environment = state.environment || {};
-    state.environment.isHeating = true;
+    // Chỉ set flag môi trường nếu cần thiết cho UI chung, 
+    // không dùng làm tham số chính cho phản ứng của cốc
+    state.environment.isHeating = true; 
     addLog('warning', `🔥 Đèn cồn bật — Cẩn thận lửa hở!`);
     const intervalId = setInterval(() => {
       emitFlameParticle(item.x + 28, item.y + 10);
@@ -2087,29 +2650,19 @@ function heatNearbyContainers(bunsen) {
             const beaker = it;
             const env = { ...(state.environment || {}), isHeating: true };
 
-            // 1. Ưu tiên kiểm tra thuốc súng — hiện modal cảnh báo trước khi nổ
+            // 1. Ưu tiên kiểm tra thuốc súng — chỉ nổ nếu đã trộn xong
             if (window.ChemistryEngine) {
               const gp = window.ChemistryEngine.checkGunpowder(beaker.chemicals, env);
-              if (gp && gp.type === 'gunpowder_explosion') {
-                executeReaction(beaker, {
-                  equation: '2KNO₃ + S + 3C → K₂S + N₂↑ + 3CO₂↑',
-                  type: 'explosion',
-                  effect: 'explosion-violent',
-                  observation: '💣 THUỐC SÚNG ĐEN BẮT LỬA! Phản ứng nổ dây chuyền không thể dừng!',
-                  synthesis: { name: '💣 THUỐC SÚNG ĐEN PHÁT NỔ!', icon: '💥', category: 'Vũ khí / Pháo hoa' },
-                  logType: 'danger',
-                  hazardLevel: 3,
-                  hazardType: 'explosion',
-                  shatter: true,
-                  colorChange: { end: '#fbbf24' }
-                });
+              if (gp && gp.type === 'gunpowder_explosion' && beaker._gunpowderMixed) {
+                triggerGunpowderExplosion(beaker, gp);
                 return;
               }
             }
 
             // 2. Kiểm tra HEAT_REACTIONS
             if (window.HEAT_REACTIONS) {
-              for (const [key, rxn] of Object.entries(window.HEAT_REACTIONS)) {
+              const sortedEntries = Object.entries(window.HEAT_REACTIONS).sort((a, b) => (b[1].reactants?.length || 0) - (a[1].reactants?.length || 0));
+              for (const [key, rxn] of sortedEntries) {
                 const needed = rxn.reactants || [];
                 const presentIds = beaker.chemicals.map(c => c.id);
                 if (needed.length > 0 && needed.every(r => presentIds.includes(r))) {
@@ -2149,7 +2702,7 @@ function toggleFumeHood(item) {
     hideToxicOverlay();
   } else {
     state.safetyEquipped.delete('fume-hood');
-    addLog('warning', `⚠️ Tủ hút khí: TẮT`);
+    addLog('warning', '[CẢNH_BÁO] HỆ THỐNG HÚT KHÍ: STANDBY (TẮT)');
   }
   refreshWorkspaceItem(item);
   updateSafetyStatus();
@@ -2185,20 +2738,36 @@ function checkInteractions(newItem) {
         setTimeout(() => document.body.classList.remove('shake'), 600);
         showDanger('NGUY HIỂM!', combo.message);
       } else {
-        addLog('warning', `⚠️ ${combo.message}`);
+        addLog('warning', `[PHÂN_TÍCH] ${combo.message}`);
       }
     }
   }
 }
 
 // ——— LOG SYSTEM ———
+// ——— LOG SYSTEM (QUANTUM HUD) ———
+const LOG_ICONS = {
+  info: `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+  success: `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="20 6 9 17 4 12"/></svg>`,
+  warning: `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  danger: `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`
+};
+
 function addLog(type, message) {
   const entries = document.getElementById('logEntries');
   const div = document.createElement('div');
   div.className = `log-entry ${type}`;
+  
   const now = new Date();
   const time = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  div.innerHTML = `<span class="log-time">${time}</span><span>${message}</span>`;
+  const icon = LOG_ICONS[type] || LOG_ICONS.info;
+  
+  div.innerHTML = `
+    <span class="log-time">${time}</span>
+    <span class="log-icon">${icon}</span>
+    <span class="log-msg">${message}</span>
+  `;
+  
   entries.appendChild(div);
   entries.scrollTop = entries.scrollHeight;
   state.logCount++;
@@ -2207,10 +2776,8 @@ function addLog(type, message) {
 function clearLog() {
   document.getElementById('logEntries').innerHTML = '';
   state.logCount = 0;
+  addLog('info', '[HỆ_THỐNG] NHẬT KÝ ĐÃ ĐƯỢC LÀM SẠCH. SẴN SÀNG TIẾP NHẬN DỮ LIỆU.');
 }
-
-// ——— DANGER OVERLAY ———
-let _dangerCallback = null;
 
 function showDanger(title, message, callback, headerColor = '#dc2626') {
   document.getElementById('dangerTitle').textContent = title;
@@ -2225,6 +2792,114 @@ function dismissDanger() {
     _dangerCallback();
     _dangerCallback = null;
   }
+}
+
+// ——— MARS GENESIS SAFETY QUIZ (IDCL) ———
+function triggerSystemFreeze(violations, chemicalId) {
+  state.isDragging = false; // Ngừng mọi thao tác kéo thả
+
+  const overlay = document.getElementById('safety-overlay');
+  const quizContent = document.getElementById('quiz-content');
+  overlay.style.display = 'block';
+
+  // Chơi âm thanh báo động
+  if (window.AudioSystem) window.AudioSystem.playAlert(2);
+
+  const chem = window.CHEMICALS ? window.CHEMICALS.find(c => c.id === chemicalId) : null;
+  const chemName = chem ? (chem.formula || chem.name) : chemicalId;
+  const violationMsg = violations.map(v => v.message).join('<br>');
+
+  let html = `
+    <div style="margin-bottom: 20px; padding: 15px; border: 1px dashed #ff3131; background: rgba(255, 0, 0, 0.1);">
+      <h3 style="color: #ff3131; margin-top: 0;">LỖI NGHIÊM TRỌNG</h3>
+      <p style="margin-bottom: 0;">${violationMsg}</p>
+    </div>
+    <p>TRÌNH QUẢN TRỊ VIÊN ĐÃ KHÓA HỆ THỐNG ĐỂ ĐẢM BẢO AN TOÀN CHO TRẠM MARS-GENESIS.</p>
+    <p>Hãy hoàn thành bài kiểm tra an toàn về <strong>${chemName}</strong> để tiếp tục.</p>
+  `;
+
+  // Câu hỏi cứng hoặc lấy từ SAFETY_QUIZZES nếu có
+  const quizzes = window.SAFETY_QUIZZES || {
+    "cl2": [
+      {
+        q: `Khí Cl₂ có đặc điểm nhận dạng nào sau đây trong môi trường phòng thí nghiệm?`,
+        opts: ["Không màu, mùi thơm nhẹ.", "Màu vàng lục, mùi hắc đặc trưng, cực độc.", "Màu nâu đỏ, không mùi."],
+        ans: 1
+      },
+      {
+        q: `Tại sao phải sử dụng tủ hút (Fume Hood) khi thí nghiệm với Cl₂?`,
+        opts: ["Để khí phản ứng với không khí nhanh hơn.", "Để giữ nhiệt độ phản ứng ổn định.", "Ngăn chặn khí độc khuếch tán vào hệ thống hô hấp."],
+        ans: 2
+      },
+      {
+        q: `Nếu lỡ hít phải một lượng nhỏ khí Cl₂, hành động sơ cứu đầu tiên là gì?`,
+        opts: ["Uống nhiều nước ngay lập tức.", "Di chuyển ngay ra nơi thoáng khí và hít thở sâu.", "Tiếp tục hoàn thành thí nghiệm rồi đi kiểm tra."],
+        ans: 1
+      }
+    ]
+  };
+
+  const quizSet = quizzes[chemicalId] || quizzes["cl2"]; // Fallback to cl2 if not found
+  let currentQ = 0;
+
+  function renderQ() {
+    if (currentQ >= quizSet.length) {
+      quizContent.innerHTML = `
+        <h3 style="color: #34d399; text-align: center;">ĐÃ XÁC MINH AN TOÀN</h3>
+        <p style="text-align: center;">Hệ thống đã được mở khóa. Hãy nhớ tuân thủ quy tắc an toàn!</p>
+        <button class="quiz-btn-submit" style="background: #34d399;" id="btn-unlock-sys">TIẾP TỤC SỨ MỆNH</button>
+      `;
+      document.getElementById('btn-unlock-sys').onclick = () => {
+        overlay.style.display = 'none';
+        if (window.AudioSystem) window.AudioSystem.stopAlert();
+      };
+      return;
+    }
+
+    const qData = quizSet[currentQ];
+    html = `
+      <div class="quiz-question"><strong>Câu ${currentQ + 1}/${quizSet.length}:</strong> ${qData.q}</div>
+      <div class="quiz-options" id="quiz-options">
+        ${qData.opts.map((opt, i) => `<div class="quiz-option" data-idx="${i}">${opt}</div>`).join('')}
+      </div>
+      <div class="quiz-feedback" id="quiz-feedback"></div>
+      <button class="quiz-btn-submit" id="quiz-submit" disabled>XÁC NHẬN</button>
+    `;
+    quizContent.innerHTML = html;
+
+    let selectedIdx = -1;
+    document.querySelectorAll('.quiz-option').forEach(el => {
+      el.onclick = () => {
+        document.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedIdx = parseInt(el.dataset.idx);
+        document.getElementById('quiz-submit').disabled = false;
+      };
+    });
+
+    document.getElementById('quiz-submit').onclick = () => {
+      const btn = document.getElementById('quiz-submit');
+      const fb = document.getElementById('quiz-feedback');
+      btn.disabled = true;
+
+      if (selectedIdx === qData.ans) {
+        fb.textContent = "CHÍNH XÁC!";
+        fb.className = "quiz-feedback success";
+        setTimeout(() => { currentQ++; renderQ(); }, 1000);
+      } else {
+        fb.textContent = "SAI. VUI LÒNG ĐỌC KỸ LẠI TÀI LIỆU AN TOÀN.";
+        fb.className = "quiz-feedback error";
+        setTimeout(() => {
+          fb.textContent = "";
+          btn.disabled = false;
+          document.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
+          selectedIdx = -1;
+        }, 2000);
+      }
+    };
+  }
+
+  renderQ();
 }
 
 // ——— TOXIC OVERLAY ———
@@ -2267,7 +2942,25 @@ function hideTooltip() {
   document.getElementById('tooltip').classList.remove('visible');
 }
 
-// ——— REACTION MODAL ———
+/**
+ * Kích hoạt hiệu ứng nổ Thuốc súng đen
+ */
+function triggerGunpowderExplosion(beaker, data) {
+  executeReaction(beaker, {
+    equation: data.equation || '2KNO₃ + S + 3C → K₂S + N₂↑ + 3CO₂↑',
+    type: 'explosion',
+    effect: 'explosion-violent',
+    observation: '💣 THUỐC SÚNG ĐEN PHÁT NỔ! Phòng thí nghiệm bị phá hủy!',
+    synthesis: { name: '💣 THUỐC SÚNG ĐEN PHÁT NỔ!', icon: '💥', category: 'Vũ khí / Pháo hoa' },
+    logType: 'danger',
+    hazardLevel: 3,
+    hazardType: 'explosion',
+    shatter: true,
+    colorChange: { end: '#fbbf24' }
+  });
+}
+
+// ——— REACTION EXECUTION ———
 function showReactionModal(reaction) {
   const modal = document.getElementById('modalOverlay');
   const content = document.getElementById('modalContent');
@@ -2296,9 +2989,9 @@ function showReactionModal(reaction) {
 
 function getReactionTypeName(type) {
   const map = {
-    'neutralization': 'Trung hòa (Axit + Bazơ)',
-    'acid-carbonate': 'Axit + Cacbonat → CO₂',
-    'metal-acid': 'Kim loại + Axit',
+    'neutralization': 'Trung hòa (Acid + Base)',
+    'acid-carbonate': 'Acid + Cacbonat → CO₂',
+    'metal-acid': 'Kim loại + Acid',
     'precipitation': 'Tạo kết tủa',
     'indicator': 'Chỉ thị màu',
     'redox': 'Oxy hóa khử',
@@ -2352,30 +3045,35 @@ function setConfigType(type) {
 }
 
 function renderConfigInputs() {
+  const chem = state.pendingPlacement?.chem;
+  if (!chem) return '';
+
   if (_configType === 'molarity') {
+    const presets = chem.molarityPresets || ['0.1', '1.0', '2.0', '5.0', '10.0', '18.0'];
+    const range = chem.molarityRange || [0.1, 18.0];
+    const defaultVal = presets.includes('2.0') ? '2.0' : (presets.includes('1.0') ? '1.0' : presets[0]);
+    
     return `
       <div class="config-grid">
-        <button class="config-preset-btn" onclick="setPresetValue('0.1')">0.1 M</button>
-        <button class="config-preset-btn selected" onclick="setPresetValue('1.0')">1.0 M</button>
-        <button class="config-preset-btn" onclick="setPresetValue('2.0')">2.0 M</button>
-        <button class="config-preset-btn" onclick="setPresetValue('5.0')">5.0 M</button>
-        <button class="config-preset-btn" onclick="setPresetValue('10.0')">10.0 M</button>
-        <button class="config-preset-btn" onclick="setPresetValue('18.0')">18.0 M</button>
+        ${presets.map(p => `
+          <button class="config-preset-btn ${p == defaultVal ? 'selected' : ''}" onclick="setPresetValue('${p}')">${p} M</button>
+        `).join('')}
       </div>
       <div class="custom-input-group">
         <label>Tùy chỉnh (M):</label>
-        <input type="number" id="customChemValue" value="1.0" step="0.1" min="0">
+        <input type="number" id="customChemValue" value="${defaultVal}" step="0.1" min="${range[0]}" max="${range[1]}">
+        <div style="font-size: 11px; color: var(--accent-blue); opacity: 0.8; margin-top: 6px; letter-spacing: 0.5px;">
+          RANGE: ${range[0]}M — ${range[1]}M
+        </div>
       </div>
     `;
   } else {
+    const standardMasses = ['1', '5', '10', '50', '100', '500'];
     return `
       <div class="config-grid">
-        <button class="config-preset-btn" onclick="setPresetValue('1')">1 g</button>
-        <button class="config-preset-btn" onclick="setPresetValue('5')">5 g</button>
-        <button class="config-preset-btn selected" onclick="setPresetValue('10')">10 g</button>
-        <button class="config-preset-btn" onclick="setPresetValue('50')">50 g</button>
-        <button class="config-preset-btn" onclick="setPresetValue('100')">100 g</button>
-        <button class="config-preset-btn" onclick="setPresetValue('500')">500 g</button>
+        ${standardMasses.map(m => `
+          <button class="config-preset-btn ${m === '10' ? 'selected' : ''}" onclick="setPresetValue('${m}')">${m} g</button>
+        `).join('')}
       </div>
       <div class="custom-input-group">
         <label>Tùy chỉnh (g):</label>
@@ -2415,7 +3113,7 @@ function confirmChemicalPlacement() {
     // Try drop onto container if it's a direct place near one
     tryDropChemicalOnContainer(item, x, y);
     
-    addLog('info', `🧪 Đã thêm ${chem.formula} (${val}${_configType === 'molarity' ? 'M' : 'g'})`);
+    addLog('info', `[TÍN_HIỆU] ĐÃ NẠP ${chem.formula} (Lượng: ${val}${_configType === 'molarity' ? 'M' : 'g'})`);
   } catch (err) {
     console.error("Error during chemical placement:", err);
     addLog('danger', `❌ Lỗi khi thêm ${chem.formula}: ${err.message}`);
@@ -2451,6 +3149,9 @@ function loadExperiment(id) {
   const steps = document.getElementById('guideSteps');
   const theory = document.getElementById('guideTheory');
 
+  // Guard: các element này có thể không tồn tại tùy layout
+  if (!title || !steps || !theory) return;
+
   title.innerHTML = `<h4>${exp.title}</h4><p>${exp.objective}</p>`;
   steps.innerHTML = exp.steps.map((step, i) => `
     <div class="guide-step ${i === 0 ? 'active' : ''}" id="step-${i}">
@@ -2476,25 +3177,16 @@ function loadExperiment(id) {
 
 function toggleGuide() {
   const panel = document.getElementById('guidePanel');
-  panel.classList.toggle('open');
-  if (panel.classList.contains('open')) {
-    loadExperiment(state.currentExperiment);
-    renderToolManual();
+  const isOpen = panel.classList.contains('open');
+  
+  if (!isOpen) {
+    if (window.initKnowledgeTerminal) {
+      initKnowledgeTerminal();
+    }
+    panel.classList.add('open');
+  } else {
+    panel.classList.remove('open');
   }
-}
-
-function switchGuideTab(tab) {
-  const tabs = document.querySelectorAll('.g-tab');
-  const contents = document.querySelectorAll('.guide-tab-content');
-  
-  tabs.forEach(t => {
-    const isTarget = (tab === 'steps' && t.textContent.includes('Thực hành')) || 
-                     (tab === 'tools' && t.textContent.includes('Dụng cụ'));
-    t.classList.toggle('active', isTarget);
-  });
-  
-  document.getElementById('guideStepsContent').classList.toggle('active', tab === 'steps');
-  document.getElementById('toolManualContent').classList.toggle('active', tab === 'tools');
 }
 
 function renderToolManual() {
@@ -2525,38 +3217,50 @@ function handleToolInteraction(source, target) {
 
   // 1. Dropper / Pipette interactions
   if (sId === 'dropper' || sId === 'pipette') {
-    // If clicking a container
+    // A. Click a chemical card on workspace to load dropper
+    if (target.type === 'chemical') {
+      const chem = CHEMICALS.find(c => c.id === target.chemId) || window.ALL_ITEMS?.find(c => c.id === target.chemId);
+      if (chem) {
+        source.holdingColor = chem.liquidColor || 'rgba(186,230,253,0.5)';
+        source.holdingChemicals = [{ ...chem }];
+        addLog('info', `[HÀNH_ĐỘNG] ĐÃ CHIẾT XUẤT MẪU THỬ: ${chem.formula}.`);
+        refreshWorkspaceItem(source);
+        return true;
+      }
+    }
+
+    // B. Interaction with containers
     const isContainer = TOOLS.find(t => t.id === tId)?.category === 'container';
     
     if (isContainer) {
       if (!source.holdingColor) {
-        // HÚT (Suck up)
+        // HÚT (Suck up from container)
         if (target.chemicals.length > 0 && (target.liquidLevel || 0) > 0) {
           source.holdingColor = target.liquidColor || 'rgba(186,230,253,0.5)';
           source.holdingChemicals = [...target.chemicals];
           
-          // Decrease liquid level in target
-          target.liquidLevel = Math.max(0, (target.liquidLevel || 0) - 20);
+          target.liquidLevel = Math.max(0, (target.liquidLevel || 0) - 10); // Small suck
           if (target.liquidLevel === 0) {
             target.chemicals = [];
             target.liquidColor = null;
             target.activePrecipitate = null;
           }
           
-          addLog('info', `🧪 ${source.name} đã hút dung dịch.`);
+          addLog('info', `[HÀNH_ĐỘNG] ĐÃ HÚT DUNG DỊCH TỪ ${target.name}.`);
           refreshWorkspaceItem(source);
           refreshWorkspaceItem(target);
         } else {
-          addLog('warning', `⚠️ Không còn dung dịch để hút.`);
+          addLog('warning', '[LỖI] KHÔNG CÒN DUNG DỊCH ĐỂ CHIẾT XUẤT.');
         }
       } else {
-        // NHỎ (Drop)
-        addChemicalToContainer(target, { chemId: source.holdingChemicals[0]?.id || 'water' }); 
-        // Note: simplified to add the first chemical. Real engine would add the mixture.
-        addLog('success', `💧 Đã nhỏ dung dịch từ ${source.name} vào ${target.name}.`);
-        source.holdingColor = null;
-        source.holdingChemicals = [];
-        refreshWorkspaceItem(source);
+        // NHỎ (Drop into container - Precision step)
+        const chemId = source.holdingChemicals[0]?.id || 'water';
+        addChemicalToContainer(target, { chemId }, 3); // ONLY 3 units level increase
+        addLog('success', `[HÀNH_ĐỘNG] BƠM GIỌT MẪU: ${source.name} -> ${target.name}.`);
+        
+        // Clear for simplicity or keep for multiple drops? Let's keep for multi drops
+        // We assume dropper has infinite small drops for UX, or we could handle quantity
+        refreshWorkspaceItem(target);
       }
       return true;
     }
@@ -2597,7 +3301,7 @@ function handleToolInteraction(source, target) {
       target.connectionType = source.connections.length === 1 ? 'positive' : 'negative';
       
       const beamColor = target.connectionType === 'positive' ? '🔴 ĐỎ (Dương)' : '⚫ ĐEN (Âm)';
-      addLog('success', `🔌 Đã nối dây ${beamColor} vào điện cực.`);
+      addLog('success', `[KẾT_NỐI] THIẾT LẬP ĐƯỜNG TRUYỀN DẪN ĐIỆN (${beamColor}).`);
       
       const cellId = target.attachedTo;
       if (cellId) {
@@ -2605,7 +3309,7 @@ function handleToolInteraction(source, target) {
         if (cell) checkElectrolysis(cell);
       }
     } else {
-      addLog('warning', `⚠️ Bộ nguồn chỉ có 2 đầu ra. Hãy xóa bớt kết nối cũ.`);
+      addLog('warning', `[CẢNH_BÁO] GIỚI HẠN KÝ TỰ KẾT NỐI VẬT LÝ: BỘ NGUỒN ĐÃ ĐẦY.`);
     }
     
     refreshWorkspaceItem(source);
@@ -2624,7 +3328,7 @@ function handleToolInteraction(source, target) {
   if (sId === 'ph-indicator' && TOOLS.find(t => t.id === tId)?.category === 'container') {
     const indicatorId = source.indicatorId || 'phenolphthalein';
     addChemicalToContainer(target, { chemId: indicatorId });
-    addLog('success', `🎨 Đã nhỏ chỉ thị ${indicatorId} vào ${target.name}.`);
+    addLog('success', `[CHỈ_THỊ] ĐÃ NẠP CHỈ THỊ ${indicatorId} VÀO ${target.name}.`);
     return true;
   }
 
@@ -2648,7 +3352,7 @@ function checkElectrolysis(cell) {
   if (supply && window.ChemistryEngine) {
     // Overload check
     if (supply.voltage >= 24 && !supply.overloadWarningShown) {
-      addLog('danger', `⚠️ CẢNH BÁO: Dòng điện 24V đang làm nóng bộ nguồn!`);
+      addLog('danger', `[NGUY_CƠ] PHÁT HIỆN TÌNH TRẠNG QUÁ NHIỆT DO DÒNG 24V.`);
       supply.overloadWarningShown = true;
     }
 
@@ -2658,14 +3362,15 @@ function checkElectrolysis(cell) {
       const volt = supply.voltage || 12;
       const intensity = volt >= 24 ? 'bubbles-violent' : volt >= 12 ? 'bubbles-fast' : 'bubbles';
       
-      addLog('warning', `⚡ Đang điện phân (${volt}V)... Xuất hiện bọt khí mạnh tại các điện cực.`);
+      addLog('warning', `[ĐIỆN_PHÂN] QUÁ TRÌNH PHÂN TÁCH ION ĐANG DIỄN RA (${volt}V).`);
       
       electrodes.forEach(e => {
         const prodColor = e.connectionType === 'positive' ? '#fff' : '#bae6fd';
-        triggerReactionEffect(intensity, e.x + 10, e.y + 60, { color: prodColor });
+        const eScale = e.scale || 1;
+        triggerReactionEffect(intensity, e.x + 10 * eScale, e.y + 60 * eScale, { color: prodColor }, eScale);
       });
     } else {
-      addLog('info', `ℹ️ Dung dịch không dẫn điện, bọt khí không xuất hiện.`);
+      addLog('warning', `[CẢNH_BÁO] DỮ LIỆU DÒNG ĐIỆN KHÔNG PHÁT HIỆN ĐỘ DẪN ĐIỆN.`);
       cell.effervescing = false;
     }
   } else {
@@ -2678,12 +3383,12 @@ function handlePowerSupplyClick(item, e) {
   const target = e.target;
   if (target.classList.contains('btn-pow-toggle')) {
     item.active = !item.active;
-    addLog('info', `🔌 Nguồn điện: ${item.active ? 'BẬT' : 'TẮT'}`);
+    addLog('info', `[NGUỒN_ĐIỆN] CHUYỂN TRẠNG THÁI: ${item.active ? 'BẬT (ACTIVE)' : 'TẮT (STANDBY)'}`);
   } else if (target.closest('.btn-volt-cycle')) {
     const volts = [6, 12, 24];
     const idx = volts.indexOf(item.voltage || 12);
     item.voltage = volts[(idx + 1) % volts.length];
-    addLog('info', `⚡ Điện áp đã chỉnh thành: ${item.voltage}V`);
+    addLog('info', `[NGUỒN_ĐIỆN] XÁC LẬP GIÁ TRỊ ĐIỆN ÁP: ${item.voltage}V`);
   }
   
   // Re-check electrolysis for any cell it might be connected to
@@ -2702,7 +3407,7 @@ function handlePowerSupplyClick(item, e) {
 function toggleStirrer(item) {
   item.active = !item.active;
   if (item.active) {
-    addLog('info', `🌀 Đang khuấy...`);
+    addLog('info', `[HỆ_THỐNG] KÍCH HOẠT QUÁ TRÌNH KHUẤY TRỘN CƠ HỌC.`);
     // Find nearby container
     const container = state.workspaceItems.find(it => 
       it.type === 'tool' && 
@@ -2711,7 +3416,7 @@ function toggleStirrer(item) {
     );
     if (container && container.activePrecipitate) {
       // Logic hòa tan kết tủa cơ bản khi khuấy
-      addLog('success', `✨ Việc khuấy giúp tăng tốc độ hòa tan.`);
+      addLog('success', `[DỮ_LIỆU] QUÁ TRÌNH KHUẤY GIÚP TĂNG TỐC ĐỘ HÒA TAN.`);
     }
   }
   refreshWorkspaceItem(item);
@@ -2735,13 +3440,29 @@ function resetLab() {
   Object.values(state.flameIntervals).forEach(clearInterval);
   state.flameIntervals = {};
 
+  // Clear Synthesis Display
+  const rd = document.getElementById('activeReactionDisplay');
+  if (rd) rd.style.display = 'none';
+
+  // Clear particles
+  if (typeof particles !== 'undefined') particles.length = 0;
+  state.flameIntervals = {};
+
+  // Reset visual effects
+  if (typeof particles !== 'undefined') particles.length = 0;
+  if (typeof window.triggerFlash === 'function') {
+    // Reset flash intensity
+    window.triggerFlash(0); 
+  }
+  state.flameIntervals = {};
+
   // Clear particles
   if (typeof particles !== 'undefined') particles.length = 0;
 
   hideToxicOverlay();
   updateDropHint();
   updateSafetyStatus();
-  addLog('info', '🔄 Lab đã được đặt lại.');
+  addLog('info', '[HỆ_THỐNG] KHỞI TẠO LẠI TOÀN BỘ CẤU CẤU HÌNH PHÒNG THÍ NGHIỆM.');
 }
 
 // ——— KEYBOARD SHORTCUTS ———
@@ -2762,3 +3483,261 @@ document.addEventListener('keydown', (e) => {
 window.addEventListener('resize', () => {
   if (typeof resizeCanvas === 'function') resizeCanvas();
 });
+
+// ——— TOGGLE ALERT SOUND ———
+function toggleAlertSound() {
+  const isMuted = AudioSystem._isMuted;
+  AudioSystem.setMuted(!isMuted);
+
+  const newMuted = AudioSystem._isMuted;
+  const btn = document.getElementById('btnMuteAlert');
+  const iconSound = document.getElementById('iconSound');
+  const iconMute = document.getElementById('iconMute');
+  const lbl = document.getElementById('lblSound');
+
+  if (newMuted) {
+    if (btn) btn.style.background = 'rgba(107,114,128,0.15)';
+    if (btn) btn.style.borderColor = 'rgba(107,114,128,0.4)';
+    if (btn) btn.style.color = '#6b7280';
+    if (iconSound) iconSound.style.display = 'none';
+    if (iconMute) iconMute.style.display = 'inline';
+    if (lbl) lbl.textContent = 'Tắt tiếng';
+    addLog('info', '🔇 Đã tắt âm thanh cảnh báo.');
+  } else {
+    if (btn) btn.style.background = 'rgba(251,191,36,0.15)';
+    if (btn) btn.style.borderColor = 'rgba(251,191,36,0.4)';
+    if (btn) btn.style.color = '#fbbf24';
+    if (iconSound) iconSound.style.display = 'inline';
+    if (iconMute) iconMute.style.display = 'none';
+    if (lbl) lbl.textContent = 'Âm thanh';
+    addLog('info', '🔊 Đã bật âm thanh cảnh báo.');
+    // Test nhanh 0.5s
+    AudioSystem.playAlert(1);
+  }
+}
+window.toggleAlertSound = toggleAlertSound;
+
+// ——— MUSIC SYSTEM ———
+const MusicSystem = {
+  _ctx: null,
+  _gainNode: null,
+  _oscillators: [],
+  _isMuted: false,
+  _isPlaying: false,
+  _currentTrack: 'science',
+  _volume: 0.8,
+  _arpTimer: null,
+  _audioElement: null,
+
+  _tracks: {
+    'science': 'music/science.mp3',
+    'ly_keo_chai': 'music/ly_keo_chai.mp3',
+    'da_lab_album': 'music/da_lab_instrumental.mp3',
+    'son_tung': 'music/son_tung_remix.mp3',
+    'thanh_xuan': 'music/thanh_xuan.mp3',
+    'concentration': 'synthesized'
+  },
+
+  init() {
+    if (this._audioElement) return;
+    try {
+      this._audioElement = new Audio();
+      this._audioElement.loop = true;
+      
+      this._audioElement.onplay = () => addLog('info', '🔊 Nhạc đang phát (Trực tiếp)...');
+      this._audioElement.onerror = (e) => {
+        const error = this._audioElement.error;
+        let msg = 'Lỗi không xác định';
+        if (error) {
+          switch(error.code) {
+            case 1: msg = 'Người dùng hủy'; break;
+            case 2: msg = 'Lỗi file / Mạng'; break;
+            case 3: msg = 'Lỗi giải mã'; break;
+            case 4: msg = 'Không thấy file music/'; break;
+          }
+        }
+        addLog('danger', `❌ Lỗi Audio: ${msg}`);
+      };
+
+      // AudioContext dành cho Drone
+      try {
+        this._ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this._gainNode = this._ctx.createGain();
+        this._gainNode.connect(this._ctx.destination);
+      } catch(e) {}
+    } catch(e) {
+      console.warn('[MusicSystem] Init error:', e);
+    }
+  },
+
+  play(trackId) {
+    this.init();
+    if (this._isPlaying) return;
+    
+    if (trackId) this._currentTrack = trackId;
+    this._isPlaying = true;
+    
+    this._startTrack(this._currentTrack);
+  },
+
+  playNext() {
+    const keys = Object.keys(this._tracks);
+    const available = keys.filter(k => k !== this._currentTrack);
+    const next = available[Math.floor(Math.random() * available.length)];
+    this.play(next);
+  },
+
+  _startTrack(id) {
+    this._stopGenerators();
+    const trackFile = this._tracks[id];
+
+    if (trackFile === 'synthesized' || !trackFile) {
+      if (!this._ctx) return;
+      if (this._ctx.state === 'suspended') this._ctx.resume();
+      this._gainNode.gain.setValueAtTime(this._volume, this._ctx.currentTime);
+      
+      // Classic Drone Mode
+      const freqs = [55, 82.4, 110, 41.2, 164.8];
+      freqs.forEach((freq, i) => {
+        const osc = this._ctx.createOscillator();
+        const g = this._ctx.createGain();
+        osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, this._ctx.currentTime);
+        const lfo = this._ctx.createOscillator();
+        const lfoGain = this._ctx.createGain();
+        lfo.frequency.value = 0.1 + Math.random() * 0.1;
+        lfoGain.gain.value = 0.5;
+        lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+        lfo.start();
+        g.gain.value = i === 0 ? 0.6 : 0.3;
+        osc.connect(g); g.connect(this._gainNode);
+        osc.start();
+        this._oscillators.push({ osc, lfo });
+      });
+    } else {
+      // Local MP3 Mode - Phát trực tiếp qua Audio Element để ổn định nhất
+      this._audioElement.src = trackFile;
+      this._audioElement.volume = this._volume;
+      
+      const trackName = id.replace(/_/g, ' ').toUpperCase();
+      addLog('info', `📡 Đang nạp: ${trackName} (${trackFile})...`);
+      
+      this._audioElement.play().catch(err => {
+        if (err.name === 'NotAllowedError') {
+          addLog('warning', '⚠️ Trình duyệt chặn tự động phát. Hãy nhấn vào màn hình!');
+        } else {
+          addLog('danger', `❌ Không thể phát: ${err.message}`);
+        }
+      });
+    }
+  },
+
+  _stopGenerators() {
+    clearTimeout(this._arpTimer);
+    if (this._audioElement) this._audioElement.pause();
+    this._oscillators.forEach(obj => {
+      if (obj.osc) try { obj.osc.stop(); } catch(e) {}
+      if (obj.lfo) try { obj.lfo.stop(); } catch(e) {}
+    });
+    this._oscillators = [];
+  },
+
+  stop() {
+    if (!this._isPlaying) return;
+    this._isPlaying = false;
+    this._stopGenerators();
+  },
+
+  setVolume(v) {
+    this._volume = parseFloat(v);
+    if (this._audioElement) {
+      this._audioElement.volume = this._volume;
+    }
+    if (this._gainNode && this._ctx) {
+      this._gainNode.gain.setTargetAtTime(this._volume, this._ctx.currentTime, 0.1);
+    }
+  }
+};
+
+function initMusicSystem() {
+  MusicSystem.init();
+}
+
+
+
+function toggleMusic() {
+  if (!MusicSystem._ctx) MusicSystem.init();
+  
+  if (MusicSystem._isPlaying) {
+    MusicSystem.stop();
+  } else {
+    // Mỗi lần bật lại sẽ đổi 1 bài ngẫu nhiên
+    MusicSystem.playNext();
+  }
+  
+  const btn = document.getElementById('btnToggleMusic');
+  const lbl = document.getElementById('lblMusic');
+  const sel = document.getElementById('selMusicTrack');
+  const vol = document.getElementById('volumeControl');
+  const iconOn = document.getElementById('iconMusicOn');
+  const iconOff = document.getElementById('iconMusicOff');
+  
+  const isPlaying = MusicSystem._isPlaying;
+  
+  if (btn) {
+    btn.style.background = isPlaying ? 'rgba(52,211,153,0.15)' : 'rgba(107,114,128,0.15)';
+    btn.style.borderColor = isPlaying ? 'rgba(52,211,153,0.4)' : 'rgba(107,114,128,0.3)';
+    btn.style.color = isPlaying ? '#34d399' : '#6b7280';
+  }
+  
+  if (iconOn) iconOn.style.display = isPlaying ? 'inline' : 'none';
+  if (iconOff) iconOff.style.display = isPlaying ? 'none' : 'inline';
+  if (lbl) lbl.textContent = isPlaying ? 'Nhạc: BẬT' : 'Nhạc: TẮT';
+  if (sel) {
+    sel.style.display = isPlaying ? 'inline-block' : 'none';
+    if (isPlaying) sel.value = MusicSystem._currentTrack;
+  }
+  if (vol) vol.style.display = isPlaying ? 'flex' : 'none';
+  
+  addLog('info', isPlaying ? '🎵 Nhạc nền Lab đã bật.' : '🔇 Nhạc nền đã tắt.');
+}
+
+function changeMusicTrack(trackId) {
+  if (MusicSystem._isPlaying) {
+    // Cross-fade track switch
+    MusicSystem.stop();
+    setTimeout(() => MusicSystem.play(trackId), 1000);
+  } else {
+    MusicSystem._currentTrack = trackId;
+  }
+}
+window.toggleMusic = toggleMusic;
+window.changeMusicTrack = changeMusicTrack;
+
+// Update pH widget when container selected
+function updatePHWidget(chemicals) {
+  const widget = document.getElementById('phWidget');
+  if (!widget) return;
+  const ph = window.ChemistryEngine ? window.ChemistryEngine.calculatePH(chemicals || []) : 7.0;
+  const clampedPH = Math.max(0, Math.min(14, ph));
+  const pct = (clampedPH / 14) * 100;
+  const marker = document.getElementById('phMarker');
+  const label = document.getElementById('phValue');
+  
+  if (marker) {
+    marker.style.left = pct + '%';
+    // Dynamically change marker color to match pH
+    const colors = [
+      '#ff1a1a','#ff4d1a','#ff801a','#ffb31a','#ffe61a',
+      '#e6ff1a','#b3ff1a','#66ff1a','#1aff66','#1affb3',
+      '#1affff','#1a80ff','#1a1aff','#801aff','#b31aff'
+    ];
+    const phIdx = Math.round(clampedPH);
+    marker.style.background = colors[phIdx] || '#fff';
+    marker.style.boxShadow = `0 0 10px ${colors[phIdx]}aa, 0 0 2px rgba(0,0,0,0.5)`;
+  }
+  
+  if (label) label.textContent = 'pH ' + (ph === 7 ? '7.0' : ph.toFixed(1));
+  widget.style.opacity = chemicals && chemicals.length > 0 ? '1' : '0.4';
+}
+window.updatePHWidget = updatePHWidget;

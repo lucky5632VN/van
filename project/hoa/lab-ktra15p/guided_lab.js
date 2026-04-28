@@ -53,7 +53,7 @@ const GUIDED_EXPERIMENTS = {
         chemPair: ['cucl2', 'h2so4'],
         observation: '💙 Bột đen biến mất → dung dịch xanh lam trong suốt CuSO₄.',
         equation: 'CuO + H₂SO₄ → CuSO₄ + H₂O',
-        theory: 'Phản ứng acid-base. CuO là oxide bazơ, tan trong acid tạo muối.',
+        theory: 'Phản ứng acid-base. CuO là oxide base, tan trong acid tạo muối.',
         phChange: { from: 10, to: 4 },
       },
       {
@@ -212,7 +212,7 @@ const GUIDED_EXPERIMENTS = {
         n: 2, title: 'Nhỏ chỉ thị Phenolphthalein',
         desc: 'Nhỏ 2-3 giọt phenolphthalein vào bình. Dung dịch HCl không đổi màu vì pH < 8.2.',
         action: 'add_indicator',
-        observation: 'Dung dịch vẫn không màu — môi trường axit.',
+        observation: 'Dung dịch vẫn không màu — môi trường acid.',
         equation: 'pH(HCl) << 8.2 → Ph.ph không màu',
         theory: 'Phenolphthalein: không màu khi pH < 8.2; hồng khi pH 8.2–10; đỏ tím khi pH > 10.',
       },
@@ -270,11 +270,11 @@ const GUIDED_EXPERIMENTS = {
       },
       {
         n: 3, title: 'Thử SO₄²⁻ bằng BaCl₂',
-        desc: 'Ống 2: Thêm BaCl₂ 0.5M + HCl loãng. Tủa trắng bền trong axit → SO₄²⁻.',
+        desc: 'Ống 2: Thêm BaCl₂ 0.5M + HCl loãng. Tủa trắng bền trong acid → SO₄²⁻.',
         action: 'add_chemical',
         chemPair: ['h2so4', 'agno3'],
         observation: '⚪ Tủa trắng BaSO₄ không tan trong HCl → SO₄²⁻ xác nhận.',
-        equation: 'Ba²⁺ + SO₄²⁻ → BaSO₄↓ (trắng, bền trong mọi axit)',
+        equation: 'Ba²⁺ + SO₄²⁻ → BaSO₄↓ (trắng, bền trong mọi acid)',
         theory: 'BaSO₄ là kết tủa bền nhất trong các sulfate. Không tan trong HNO₃, HCl, hay H₂SO₄ loãng.',
       },
       {
@@ -370,9 +370,9 @@ function initGuidedLab() {
     </div>
     <canvas id="phCanvas" width="240" height="80"></canvas>
     <div class="ph-scale-bar">
-      <span class="ph-acid">Axit</span>
+      <span class="ph-acid">Acid</span>
       <div class="ph-scale-gradient"></div>
-      <span class="ph-base">Bazơ</span>
+      <span class="ph-base">Base</span>
     </div>
   `;
   document.getElementById('workspace').appendChild(phTracker);
@@ -784,8 +784,8 @@ function openStockroom() {
       <div class="stock-side-nav">
         <div class="stock-nav-header">📁 Phân Loại</div>
         <button class="stock-tab active" data-type="all" onclick="renderStockItems('all')">Tất cả</button>
-        <button class="stock-tab" data-type="acid" onclick="renderStockItems('acid')">🧪 Axit</button>
-        <button class="stock-tab" data-type="base" onclick="renderStockItems('base')">🔷 Bazơ</button>
+        <button class="stock-tab" data-type="acid" onclick="renderStockItems('acid')">🧪 Acid</button>
+        <button class="stock-tab" data-type="base" onclick="renderStockItems('base')">🔷 Base</button>
         <button class="stock-tab" data-type="salt" onclick="renderStockItems('salt')">🧂 Muối</button>
         <button class="stock-tab" data-type="metal" onclick="renderStockItems('metal')">⚙️ Kim loại</button>
         <button class="stock-tab" data-type="organic" onclick="renderStockItems('organic')">🧬 Hữu cơ</button>

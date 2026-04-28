@@ -64,7 +64,7 @@ const LIB_CATEGORIES = [
   {
     label: 'Nâng cao',
     tabs: [
-      { id: 'conc_acids', label: 'Axit Đặc', icon: LIB_ICONS.zap },
+      { id: 'conc_acids', label: 'Acid Đặc', icon: LIB_ICONS.zap },
       { id: 'organic', label: 'Hữu Cơ', icon: LIB_ICONS.dna },
       { id: 'thermal', label: 'Nhiệt Phân', icon: LIB_ICONS.flame },
     ]
@@ -364,7 +364,7 @@ function renderReactivity() {
        </div>
        <div class="rule-tag" style="border-left:4px solid #38bdf8">
           <h4 style="margin:0 0 10px 0; color:#38bdf8">KIM LOẠI QUÝ (TRƠ)</h4>
-          <div style="font-size:12px; opacity:0.8; line-height:1.5">Rất khó bị oxy hóa, chỉ tan trong các hỗn hợp axit cực mạnh hoặc không tan. Bao gồm: Ag, Pt, Au.</div>
+          <div style="font-size:12px; opacity:0.8; line-height:1.5">Rất khó bị oxy hóa, chỉ tan trong các hỗn hợp acid cực mạnh hoặc không tan. Bao gồm: Ag, Pt, Au.</div>
        </div>
     </div>
   `;
@@ -409,7 +409,7 @@ function renderSolMatrix() {
         Bảng Tính Tan Matrix (2D)
       </div>
     </div>
-    <div class="lib-section-desc">Bảng tra cứu khả năng hòa tan của các muối và bazơ phổ biến trong nước ở 25°C. Ký hiệu: T (Tan), K (Không tan), I (Ít tan), - (Phân hủy hoặc không tồn tại).</div>
+    <div class="lib-section-desc">Bảng tra cứu khả năng hòa tan của các muối và base phổ biến trong nước ở 25°C. Ký hiệu: T (Tan), K (Không tan), I (Ít tan), - (Phân hủy hoặc không tồn tại).</div>
     
     <div class="sol-matrix-container" style="margin-top:25px; overflow-x:auto; background:rgba(0,0,0,0.2); border-radius:8px; border:1px solid var(--monolith-border)">
       <table style="width:100%; border-collapse:collapse; font-size:12px; color:#fff">
@@ -491,10 +491,10 @@ function renderAnionTable() {
     <div class="lib-section-title">
       <div style="display:flex; align-items:center; gap:12px">
         <span style="color:var(--lib-accent)">${LIB_ICONS.atom}</span>
-        Hồ sơ Phân tích Anion (Gốc Axit)
+        Hồ sơ Phân tích Anion (Gốc Acid)
       </div>
     </div>
-    <div class="lib-section-desc">Cách nhận diện các gốc axit phổ biến thông qua phản ứng tạo kết tủa hoặc sủi bọt khí.</div>
+    <div class="lib-section-desc">Cách nhận diện các gốc acid phổ biến thông qua phản ứng tạo kết tủa hoặc sủi bọt khí.</div>
     <div style="margin-top:24px">
       ${ANION_ID.map(a => `
       <div class="analytic-profile" style="border-left: 5px solid #fb7185">
@@ -622,7 +622,7 @@ function renderAmphoteric() {
         Phân tích Lưỡng tính
       </div>
     </div>
-    <div class="lib-section-desc">Hợp chất có khả năng phản ứng song song với cả Axit và Bazơ mạnh. Dưới đây là hồ sơ chi tiết về tính chất hóa học.</div>
+    <div class="lib-section-desc">Hợp chất có khả năng phản ứng song song với cả Acid và Base mạnh. Dưới đây là hồ sơ chi tiết về tính chất hóa học.</div>
     
     <div style="margin-top:24px; display:flex; flex-direction:column; gap:25px">
       ${AMPHOTERIC_COMPOUNDS.map(c => `
@@ -639,7 +639,7 @@ function renderAmphoteric() {
            <div style="padding:20px; border-right:1px solid rgba(56, 189, 248, 0.1)">
               <div style="font-size:10px; color:#38bdf8; font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:6px">
                  <div style="width:6px; height:6px; background:#38bdf8; border-radius:50%"></div>
-                 TÍNH AXIT (VỚI BAZƠ)
+                 TÍNH ACID (VỚI BASE)
               </div>
               <div style="font-family:'JetBrains Mono', monospace; font-size:13px; color:#e2e8f0; line-height:1.6">
                  ${formatFormula(c.withBase)}
@@ -649,7 +649,7 @@ function renderAmphoteric() {
            <div style="padding:20px">
               <div style="font-size:10px; color:#fb7185; font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:6px">
                  <div style="width:6px; height:6px; background:#fb7185; border-radius:50%"></div>
-                 TÍNH BAZƠ (VỚI AXIT)
+                 TÍNH BASE (VỚI ACID)
               </div>
               <div style="font-family:'JetBrains Mono', monospace; font-size:13px; color:#e2e8f0; line-height:1.6">
                  ${formatFormula(c.withAcid)}
@@ -960,18 +960,30 @@ function renderSafety() {
         An toàn Phòng thí nghiệm (GHS)
       </div>
     </div>
-    <div class="lib-section-desc">Hệ thống phân loại quốc tế GHS về mức độ nguy hại của hóa chất. Hãy luôn tuân thủ bảo hộ lao động.</div>
+    <div class="lib-section-desc">Hệ thống phân loại quốc tế GHS về mức độ nguy hại của hóa chất và các trang bị bảo hộ (PPE) bắt buộc.</div>
     <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:20px; margin-top:30px">
-      ${SAFETY_SIGNS.map(s => `
-        <div class="rule-tag" style="padding: 25px; border-left: 4px solid #fb7185">
+      ${SAFETY_SIGNS.map(s => {
+        const isPPE = s.level === 'Bắt buộc' || s.level === 'Khuyên dùng';
+        const badgeClass = isPPE ? 'badge-info' : 'badge-danger';
+        const labelSuffix = isPPE ? '' : ' NGUY HIỂM';
+        const isCorrosive = s.title === 'Chất Ăn mòn';
+        const iconHTML = isCorrosive ? 
+          `<div style="width:45px; height:45px; background:#ffffff; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; box-shadow: 0 0 15px rgba(251,113,133,0.4); border: 2px solid rgba(251,113,133,0.6);"><img src="673386621_931107726495166_1025845860654159563_n.jpg" style="width:90%; height:90%; object-fit:contain;" /></div>` : 
+          (LIB_ICONS[s.icon] ? 
+            `<div style="color:var(--lib-accent); width:45px; height:45px; display:flex; align-items:center; justify-content:center">${LIB_ICONS[s.icon]}</div>` : 
+            `<div style="font-size:45px">${s.icon}</div>`);
+
+        return `
+        <div class="rule-tag" style="padding: 25px; border-left: 4px solid ${isPPE ? 'var(--lib-accent)' : '#fb7185'}; background: rgba(15,23,42,0.4)">
           <div style="display:flex; justify-content:space-between; align-items:flex-start">
-            <div style="font-size:45px">${s.icon}</div>
-            <div class="lib-badge badge-danger">${s.level} NGUY HIỂM</div>
+            ${iconHTML}
+            <div class="lib-badge ${badgeClass}">${s.level}${labelSuffix}</div>
           </div>
           <div style="font-family:'Orbitron', sans-serif; font-size:16px; font-weight:800; color:#fff; margin-top:15px">${s.title.toUpperCase()}</div>
           <div style="font-size:12px; opacity:0.7; line-height:1.6; margin-top:10px">${s.desc}</div>
         </div>
-      `).join('')}
+        `;
+      }).join('')}
     </div>
   `;
 }
@@ -1010,6 +1022,36 @@ function renderPHIndicators() {
       </div>
     </div>
     <div class="lib-section-desc">Phân tích sự chuyển màu của thuốc thử trong các dải pH khác nhau.</div>
+
+    <!-- Thang màu pH Slider -->
+    <div style="margin-top: 25px; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 50px; padding: 15px 30px; display: flex; align-items: center; gap: 25px; box-shadow: inset 0 4px 12px rgba(0,0,0,0.4);">
+      <div style="display: flex; align-items: center; gap: 8px; color: #34d399;">
+        <span style="font-size: 18px;">🧪</span>
+        <span style="font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 800; color: #94a3b8; letter-spacing: 1px;">pH</span>
+      </div>
+      
+      <div style="flex: 1; position: relative; padding: 10px 0;">
+        <div style="height: 12px; border-radius: 10px; background: linear-gradient(90deg, #ff1a1a 0%, #ffb31a 28%, #ffe61a 42%, #66ff1a 50%, #1a80ff 71%, #b31aff 100%); position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);">
+          <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); width: 10px; height: 22px; border-radius: 4px; background: #94a3b8; border: 2px solid #ffffff; box-shadow: 0 0 10px rgba(255,255,255,0.5);"></div>
+        </div>
+        
+        <div style="position: relative; height: 15px; margin-top: 8px; font-family: 'Orbitron', sans-serif; font-size: 11px; color: #64748b; font-weight: 600;">
+          <span style="position: absolute; left: 0%; transform: translateX(-50%);">0</span>
+          <span style="position: absolute; left: 14.28%; transform: translateX(-50%);">2</span>
+          <span style="position: absolute; left: 28.57%; transform: translateX(-50%);">4</span>
+          <span style="position: absolute; left: 42.85%; transform: translateX(-50%);">6</span>
+          <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #cbd5e1;">7</span>
+          <span style="position: absolute; left: 57.14%; transform: translateX(-50%);">8</span>
+          <span style="position: absolute; left: 71.42%; transform: translateX(-50%);">10</span>
+          <span style="position: absolute; left: 85.71%; transform: translateX(-50%);">12</span>
+          <span style="position: absolute; left: 100%; transform: translateX(-50%);">14</span>
+        </div>
+      </div>
+      
+      <div style="font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 800; color: #38bdf8; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); min-width: 70px; text-align: right;">
+        pH 7.0
+      </div>
+    </div>
     <div style="margin-top:30px">
       ${PH_INDICATORS.map(p => `
         <div class="ph-indicator-card">
@@ -1034,10 +1076,10 @@ function renderConcAcids() {
     <div class="lib-section-title">
       <div style="display:flex; align-items:center; gap:12px">
         <span style="color:var(--lib-accent)">${LIB_ICONS.zap}</span>
-        Phân tích Axit Đặc Oxy hóa
+        Phân tích Acid Đặc Oxy hóa
       </div>
     </div>
-    <div class="lib-section-desc">Khám phá các phản ứng đặc thù của Axit H₂SO₄ 98% và HNO₃ 68%.</div>
+    <div class="lib-section-desc">Khám phá các phản ứng đặc thù của Acid H₂SO₄ 98% và HNO₃ 68%.</div>
     <div style="margin-top:25px">
       ${CONC_ACID_PROFILES.map(a => `
         <div class="analytic-profile" style="border-left: 5px solid #fb7185">

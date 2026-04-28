@@ -6,6 +6,45 @@
 const ChemistryEngine = {
 
   /**
+   * Module giám sát an toàn IDCL (Mars Genesis)
+   */
+  SafetyWatcher: {
+    checkViolation: function(chemicalId, currentEnvironment) {
+      // Tìm hóa chất trong DATABASE chuẩn hoặc FALLBACK
+      const chem = (typeof CHEMICAL_DATABASE !== 'undefined' && CHEMICAL_DATABASE[chemicalId]) || 
+                   (window.CHEMICALS || []).find(c => c.id === chemicalId);
+
+      if (!chem || !chem.safety) return null; // Bỏ qua nếu không có dữ liệu an toàn IDCL
+
+      const violations = [];
+
+      // 1. Kiểm tra quạt thông gió (Fume Hood) cho chất bay hơi/độc
+      if (chem.safety.is_volatile && !currentEnvironment.isFumeHoodOn) {
+        violations.push({
+          type: 'VENTILATION_ERROR',
+          message: `CẢNH BÁO: Phát hiện hóa chất/khí bốc hơi cao (${chem.formula || chem.name}) thoát ra môi trường. Quạt hút chưa bật!`,
+          requirement: 'fume-hood'
+        });
+      }
+
+      // 2. Kiểm tra đồ bảo hộ (PPE)
+      if (chem.safety.required_ppe) {
+        chem.safety.required_ppe.forEach(item => {
+          if (!currentEnvironment.equippedPPE.has(item)) {
+            violations.push({
+              type: 'PPE_MISSING',
+              message: `LỖI BẢO HỘ: Thiếu thiết bị ${item} khi tiếp xúc với ${chem.name}.`,
+              requirement: item
+            });
+          }
+        });
+      }
+
+      return violations.length > 0 ? violations : null;
+    }
+  },
+
+  /**
    * Tính toán pH của hỗn hợp
    * Sử dụng nồng độ và pKa/pKb
    * @param {Array} chemicals - Danh sách các hợp chất trong cốc
@@ -14,7 +53,7 @@ const ChemistryEngine = {
   calculatePH(chemicals) {
     if (!chemicals || chemicals.length === 0) return 7.0;
 
-    // Lọc ra các axit và bazơ mạnh/yếu
+    // Lọc ra các acid và base mạnh/yếu
     const acids = chemicals.filter(c => c.type === 'acid');
     const bases = chemicals.filter(c => c.type === 'base' || (c.type === 'oxide' && c.subtype === 'basic'));
 
@@ -22,7 +61,7 @@ const ChemistryEngine = {
     const strongAcid = acids.find(c => c.physical?.pKa < 0);
     const strongBase = bases.find(c => (c.physical?.pKa > 14 || (c.ph && c.ph > 12)));
 
-    // Nếu có cả axit mạnh và bazơ mạnh -> Trung hòa (giả định mol bằng nhau nếu nồng độ bằng nhau)
+    // Nếu có cả acid mạnh và base mạnh -> Trung hòa (giả định mol bằng nhau nếu nồng độ bằng nhau)
     if (strongAcid && strongBase) return 7.0;
 
     if (strongAcid) {
@@ -123,8 +162,17 @@ const ChemistryEngine = {
         // Tra cứu Ksp từ database mới
         const pKsp = chemicals[j].physical?.pKsp?.[c];
         if (pKsp !== undefined && pKsp !== null) {
+          // --- NÂNG CAO: TÍNH LƯỠNG TÍNH (AMPHOTERISM) ---
+          // Nếu pH > 12.5 (dư kiềm mạnh), các kết tủa Al(OH)3, Zn(OH)2, Cr(OH)3 sẽ tan
+          const ph = this.calculatePH(chemicals);
+          if (ph > 12.5) {
+            if (a === 'OH' && (c === 'Al' || c === 'Zn' || c === 'Cr3' || c === 'Pb2')) {
+              continue; // Không tạo tủa (tủa tan)
+            }
+          }
+
           // Giả định Q > Ksp trong phòng thí nghiệm (nồng độ đủ lớn)
-          return window.PHENOMENA_DB.getPrecipitateColor(c, a);
+          return window.PHENOMENA_DB ? window.PHENOMENA_DB.getPrecipitateColor(c, a) : null;
         }
       }
     }
@@ -157,18 +205,46 @@ const ChemistryEngine = {
     for (let i = chemicals.length - 1; i >= 0; i--) {
       const chem = chemicals[i];
       const ionColor = window.PHENOMENA_DB?.getLiquidColorForChem(chem.id) || chem.display?.liquidColor;
-      if (ionColor && ionColor !== 'rgba(241, 245, 249, 0.35)') {
-        // Phức Đồng Amoniac (pH > 8 + NH3)
+      
+      if (ionColor) {
+        // --- NÂNG CAO: PHỨC CHẤT & REDOX DỰA TRÊN pH ---
+
+        // A. Phức Đồng Amoniac [Cu(NH₃)₄]²⁺ (Xanh thẫm)
         if (chem.cation === 'Cu2' && ph > 8 && chemicals.find(c => c.id === 'nh3')) {
-          return 'rgba(30, 58, 138, 0.8)'; // Xanh thẫm (Deep Blue)
+          return 'rgba(30, 58, 138, 0.9)'; 
         }
-        return ionColor;
+
+        // B. Phức Bạc Amoniac [Ag(NH₃)₂]⁺ (Trong suốt/Bạc khi tráng gương)
+        if (chem.cation === 'Ag' && chemicals.find(c => c.id === 'nh3')) {
+          if (chemicals.find(c => c.id === 'glucose')) return 'rgba(226, 232, 240, 0.9)'; // Màu bạc
+          return 'rgba(248, 250, 252, 0.2)'; // Tan thành trong suốt
+        }
+
+        // C. Trạng thái KMnO₄ (MnO₄⁻) dựa trên môi trường pH
+        if (chem.id === 'kmno4') {
+          if (ph < 4) return 'rgba(224, 242, 254, 0.1)';   // Mn²⁺ (Acid: Không màu)
+          if (ph >= 4 && ph <= 8.5) return 'rgba(120, 113, 108, 0.6)'; // MnO₂ (Trung tính: Nâu đen)
+          if (ph > 8.5) return 'rgba(22, 163, 74, 0.6)';   // MnO₄²⁻ (Kiềm: Xanh lục)
+        }
+
+        // D. Phức Sắt(III) Thioxyanat Fe(SCN)₃ (Đỏ máu)
+        if (chem.cation === 'Fe3' && chemicals.find(c => c.anion === 'SCN')) {
+          return 'rgba(153, 27, 27, 0.9)'; 
+        }
+
+        // E. Ion Crômite CrO₂⁻ (Xanh lục - hình thành khi Cr(OH)₃ tan trong kiềm dư)
+        if (chem.cation === 'Cr3' && ph > 12.5) {
+          return 'rgba(21, 128, 61, 0.7)';
+        }
+
+        if (ionColor !== 'rgba(241, 245, 249, 0.35)') return ionColor;
       }
     }
 
-    // 4. Kiểm tra loại organic (Lipid/Ester thường không màu hoặc hơi vàng)
-    const lipid = chemicals.find(c => c.subtype === 'lipid' || c.subtype === 'ester');
-    if (lipid && lipid.liquidColor) return lipid.liquidColor;
+    // 4. Kiểm tra Starch + Iodine (Blue-Black)
+    if (chemicals.find(c => c.id === 'starch') && chemicals.find(c => c.id === 'iodine')) {
+      return 'rgba(30, 58, 138, 0.95)';
+    }
 
     return 'rgba(224, 242, 254, 0.3)';
   },
@@ -342,14 +418,116 @@ const ChemistryEngine = {
   },
 
   /**
+   * Kiểm tra các phản ứng điều chế phức tạp (Synthesis/Preparation)
+   * Tự động phát hiện 2-3 thành phần + Nhiệt độ + Xúc tác
+   */
+  checkSynthesisReactions(chemicals, environment) {
+    if (!chemicals || chemicals.length === 0) return null;
+    const ids = chemicals.map(c => c.id);
+    const hasHeat = environment && environment.isHeating;
+
+    // 1. ĐIỀU CHẾ CLO (PTN): MnO2 + HCl + t°
+    if (ids.includes('mno2') && ids.includes('hcl') && hasHeat) {
+      return { type: 'synthesis', key: 'mno2+hcl+heat', message: '🟢 Đang điều chế khí Clo (Cl₂)...' };
+    }
+
+    // 2. NHIỆT NHÔM: Fe2O3 + Al + t°
+    if (ids.includes('fe2o3') && ids.includes('al') && hasHeat) {
+      return { type: 'thermite', key: 'fe2o3+al+heat', message: '🔥 Phản ứng Nhiệt nhôm đang diễn ra mãnh liệt!' };
+    }
+
+    // ——— HỆ THỐNG GỢI Ý THÔNG MINH TỔNG QUÁT ———
+    const allHeatReactions = Object.values(window.HEAT_REACTIONS || {}).sort((a, b) => (b.reactants?.length || 0) - (a.reactants?.length || 0));
+    
+    for (const r of allHeatReactions) {
+      if (!r.reactants || r.reactants.length === 0) continue;
+      
+      // Kiểm tra xem beaker có chứa TẤT CẢ các chất phản ứng chính không
+      const hasAllReactants = r.reactants.every(reqId => {
+        // Hỗ trợ alias ch3cooh <-> ch3cooh_glacial
+        if (reqId === 'ch3cooh') return ids.includes('ch3cooh') || ids.includes('ch3cooh_glacial');
+        return ids.includes(reqId);
+      });
+
+      if (hasAllReactants) {
+        // Nếu đủ chất nhưng chưa đủ điều kiện (Nhiệt/Xúc tác)
+        const needsHeat = r.requires?.heat && !hasHeat;
+        const catalystId = r.requires?.catalyst;
+        const needsCatalyst = catalystId && !ids.includes(catalystId);
+
+        if (needsHeat || needsCatalyst) {
+          let missingLabel = [];
+          if (needsHeat) missingLabel.push('Nhiệt độ (t°)');
+          if (needsCatalyst) {
+            const cat = (window.CHEMICALS || []).find(c => c.id === catalystId) || 
+                        (window.ALL_ITEMS || []).find(c => c.id === catalystId);
+            missingLabel.push(cat ? cat.name : catalystId);
+          }
+          
+          return {
+            type: 'hint',
+            id: `hint_${r.reactants.join('_')}`,
+            message: `[GỢI_Ý] Phát hiện tổ hợp: ${r.synthesis?.name || 'Phản ứng mới'}. Cần thêm: ${missingLabel.join(' & ')}.`
+          };
+        } else {
+           // Nếu đủ điều kiện, trả về phản ứng thật (nếu là synthesis)
+           // Tìm key của phản ứng này trong HEAT_REACTIONS
+           const rKey = Object.keys(window.HEAT_REACTIONS || {}).find(k => window.HEAT_REACTIONS[k] === r);
+           return { type: 'synthesis', key: rKey, message: r.observation || 'Đang xảy ra phản ứng...' };
+        }
+      }
+    }
+
+    // Luôn ưu tiên Lên men & Đất đèn (không cần nhiệt)
+    if (ids.includes('yeast') && ids.includes('glucose')) {
+       return { type: 'synthesis', key: 'glucose+yeast', message: '🍇 Quá trình lên men rượu đang diễn ra.' };
+    }
+    if (ids.includes('cac2') && ids.includes('h2o')) {
+       return { type: 'synthesis', key: 'cac2+h2o', message: '🔥 Đất đèn đang giải phóng khí Acetylene (C₂H₂).' };
+    }
+
+    return null;
+  },
+
+  /**
    * Kiểm tra tính dẫn điện của dung dịch
    */
   checkConductivity(chemicals) {
     if (!chemicals || chemicals.length === 0) return 0;
-    // Salta, acids, bases are electrolytes
     const electrolytes = chemicals.filter(c => ['salt', 'acid', 'base'].includes(c.type));
-    // Simple heuristic: conductivity proportional to electrolyte presence
     return electrolytes.length > 0 ? 100 : 0;
+  },
+
+  /**
+   * Tính toán hiệu quả nguyên tử (Atom Economy)
+   * @param {Object} reactionObj - Ví dụ: { reactants: ['H2', 'Cl2'], products: ['HCl'], reactantCoefficients: [1, 1], productCoefficients: [2] }
+   * @param {string} desiredProductId - ID của sản phẩm mong muốn (ví dụ: 'HCl')
+   */
+  calculateAtomEconomy(reactionObj, desiredProductId) {
+    const db = window.CHEMICALS || [];
+    
+    // Tổng khối lượng mol của tất cả các chất tham gia (Reactants)
+    const totalReactantMass = (reactionObj.reactants || []).reduce((sum, id, index) => {
+        const chem = db.find(c => c.id === id);
+        if (!chem) return sum;
+        const coeff = (reactionObj.reactantCoefficients && reactionObj.reactantCoefficients[index]) || 1;
+        return sum + (chem.molarMass || chem.molar_mass || 0) * coeff;
+    }, 0);
+
+    // Khối lượng mol của sản phẩm mong muốn
+    const productChem = db.find(c => c.id === desiredProductId);
+    if (!productChem || totalReactantMass === 0) return 0;
+    
+    // Tìm index của product
+    const productIndex = (reactionObj.products || []).indexOf(desiredProductId);
+    const productCoeff = (productIndex !== -1 && reactionObj.productCoefficients && reactionObj.productCoefficients[productIndex]) ? reactionObj.productCoefficients[productIndex] : 1;
+
+    const desiredProductMass = (productChem.molarMass || productChem.molar_mass || 0) * productCoeff;
+
+    // Tính % Atom Economy
+    const economy = (desiredProductMass / totalReactantMass) * 100;
+    
+    return parseFloat(economy.toFixed(2));
   }
 };
 

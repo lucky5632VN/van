@@ -1,0 +1,664 @@
+﻿/* ============================================================
+   library_data.js ΓÇö Th╞░ Viß╗çn Tham Khß║úo H├│a Hß╗ìc To├án Diß╗çn
+   Nguß╗ôn: Cß║⌐m Nang Thß╗▒c H├ánh PTN H├│a Hß╗ìc QuantumLab
+   ============================================================ */
+
+// ΓÇöΓÇöΓÇö ─ÉO L╞»ß╗£NG & SAI Sß╗É ΓÇöΓÇöΓÇö
+const MEASUREMENT_INSTRUMENTS = [
+  { name: 'C├ón ─æ─⌐a', uncertainty: '┬▒0.50 g', use: '─Éo l╞░ß╗¥ng h├│a chß║Ñt th├┤' },
+  { name: 'C├ón kß╗╣ thuß║¡t', uncertainty: '┬▒0.01 g', use: 'Chuß║⌐n bß╗ï chß║Ñt tan rß║»n khß╗æi l╞░ß╗úng lß╗¢n' },
+  { name: 'C├ón b├ín vi l╞░ß╗úng', uncertainty: '┬▒0.001 g', use: 'Thuß╗æc thß╗¡ ph├ón t├¡ch ─æß╗ïnh t├¡nh' },
+  { name: 'C├ón ph├ón t├¡ch', uncertainty: '┬▒0.0001 g', use: 'H├│a chß║Ñt gß╗æc chuß║⌐n ─æß╗Ö' },
+  { name: 'ß╗Éng ─æong 100 mL', uncertainty: '┬▒0.2 mL', use: 'Lß║Ñy thß╗â t├¡ch dung m├┤i phß╗Ñ trß╗ú' },
+  { name: 'ß╗Éng ─æong 10 mL', uncertainty: '┬▒0.1 mL', use: '─Éß╗ïnh mß╗⌐c chß║Ñt lß╗Ång phß║ún ß╗⌐ng' },
+  { name: 'Buret 50 mL', uncertainty: '┬▒0.02 mL', use: 'Chuß║⌐n ─æß╗Ö thß╗â t├¡ch ΓÇö dß╗Ñng cß╗Ñ cß╗æt l├╡i' },
+  { name: 'Pipet bß║ºu 25 mL', uncertainty: '┬▒0.02 mL', use: 'Lß║Ñy ch├¡nh x├íc thß╗â t├¡ch mß║½u' },
+  { name: 'Pipet bß║ºu 10 mL', uncertainty: '┬▒0.01 mL', use: 'H├║t mß║½u thuß╗æc thß╗¡ nß╗ông ─æß╗Ö cao' },
+  { name: 'Nhiß╗çt kß║┐ (1┬░C)', uncertainty: '┬▒0.2┬░C', use: 'Theo d├╡i phß║ún ß╗⌐ng tß╗Åa/thu nhiß╗çt' },
+  { name: '├üp kß║┐ thß╗ºy ng├ón', uncertainty: '┬▒0.5 torr', use: '─Éo ├íp suß║Ñt cho phß║ún ß╗⌐ng sinh kh├¡' },
+];
+
+// ΓÇöΓÇöΓÇö Bß║óNG NHß║¼N BIß║╛T CATION ΓÇöΓÇöΓÇö
+const CATION_ID = [
+  {
+    ion: 'LiΓü║', name: 'Liti',
+    reagent: 'Thß╗¡ ngß╗ìn lß╗¡a (d├óy Pt)',
+    observation: 'Ngß╗ìn lß╗¡a m├áu ─æß╗Å t├¡a (carmine)',
+    color: '#dc2626',
+    equation: 'K├¡ch th├¡ch electron ΓåÆ ph├ít photon ─æß╗Å t├¡a',
+    note: 'Bß╗⌐c xß║í l╞░ß╗úng tß╗¡, kh├┤ng phß║úi phß║ún ß╗⌐ng h├│a hß╗ìc',
+    precipitateColor: null,
+  },
+  {
+    ion: 'NaΓü║', name: 'Natri',
+    reagent: 'Thß╗¡ ngß╗ìn lß╗¡a',
+    observation: 'Ngß╗ìn lß╗¡a v├áng cam ch├│i (─æß║╖c tr╞░ng nhß║Ñt)',
+    color: '#f59e0b',
+    equation: 'Bß╗⌐c xß║í photon vß║ích k├⌐p D (589 nm)',
+    note: 'M├áu v├áng rß║Ñt mß║ính, che lß║Ñp c├íc ion kh├íc',
+    precipitateColor: null,
+  },
+  {
+    ion: 'KΓü║', name: 'Kali',
+    reagent: 'Thß╗¡ ngß╗ìn lß╗¡a (qua k├¡nh cobalt)',
+    observation: 'Ngß╗ìn lß╗¡a t├¡m nhß║ít',
+    color: '#7c3aed',
+    equation: 'Bß╗⌐c xß║í tß╗¡ ngoß║íi gß║ºn ΓÇö violet',
+    note: 'D├╣ng k├¡nh cobalt xanh ─æß╗â lß╗ìc m├áu v├áng Natri',
+    precipitateColor: null,
+  },
+  {
+    ion: 'NHΓéäΓü║', name: 'Am├┤ni',
+    reagent: 'NaOH ─æß║╖c, ─æun nhß║╣',
+    observation: 'Kh├¡ NHΓéâ kh├┤ng m├áu, m├╣i khai xß╗æc m┼⌐i',
+    color: '#6b7280',
+    equation: 'NHΓéäΓü║ + OHΓü╗ ΓåÆ NHΓéâΓåæ + HΓééO',
+    note: 'D├╣ng giß║Ñy quß╗│ ß║⌐m ΓÇö quß╗│ h├│a xanh ─æß╗â x├íc nhß║¡n',
+    precipitateColor: null,
+  },
+  {
+    ion: 'Ba┬▓Γü║', name: 'Bari',
+    reagent: 'HΓééSOΓéä lo├úng hoß║╖c NaΓééSOΓéä',
+    observation: 'Kß║┐t tß╗ºa trß║»ng BaSOΓéä, kh├┤ng tan trong axit',
+    color: '#f8fafc',
+    equation: 'Ba┬▓Γü║ + SOΓéä┬▓Γü╗ ΓåÆ BaSOΓéäΓåô',
+    note: 'BaSOΓéä bß╗ün vß╗»ng nhß║Ñt trong c├íc sunfat kß║┐t tß╗ºa',
+    precipitateColor: '#e2e8f0',
+  },
+  {
+    ion: 'Ca┬▓Γü║', name: 'Canxi',
+    reagent: 'NaΓééCOΓéâ hoß║╖c (NHΓéä)ΓééCΓééOΓéä',
+    observation: 'Kß║┐t tß╗ºa trß║»ng CaCOΓéâ (tan sß╗ºi bß╗ìt trong HCl)',
+    color: '#f8fafc',
+    equation: 'Ca┬▓Γü║ + COΓéâ┬▓Γü╗ ΓåÆ CaCOΓéâΓåô',
+    note: 'Ngß╗ìn lß╗¡a: m├áu ─æß╗Å cam (gß║ích)',
+    precipitateColor: '#f1f5f9',
+  },
+  {
+    ion: 'Mg┬▓Γü║', name: 'Magie',
+    reagent: 'NaOH',
+    observation: 'Kß║┐t tß╗ºa trß║»ng v├┤ ─æß╗ïnh h├¼nh Mg(OH)Γéé',
+    color: '#f8fafc',
+    equation: 'Mg┬▓Γü║ + 2OHΓü╗ ΓåÆ Mg(OH)ΓééΓåô',
+    note: 'Tan trong dung dß╗ïch NHΓéäΓü║ do tß║ío phß╗⌐c amoniac',
+    precipitateColor: '#f1f5f9',
+  },
+  {
+    ion: 'Cu┬▓Γü║', name: '─Éß╗ông(II)',
+    reagent: 'NaOH hoß║╖c NHΓéâ(d╞░)',
+    observation: 'Tß╗ºa xanh lam Cu(OH)Γéé; tan trong NHΓéâ d╞░ ΓåÆ xanh thß║½m [Cu(NHΓéâ)Γéä]┬▓Γü║',
+    color: '#3b82f6',
+    equation: 'Cu┬▓Γü║ + 2OHΓü╗ ΓåÆ Cu(OH)ΓééΓåô\nCu(OH)Γéé + 4NHΓéâ ΓåÆ [Cu(NHΓéâ)Γéä]┬▓Γü║ + 2OHΓü╗',
+    note: 'Phß╗⌐c tetraammine ─æß╗ông(II) m├áu xanh thß║½m ─æß║╖c tr╞░ng',
+    precipitateColor: '#1d4ed8',
+  },
+  {
+    ion: 'Fe┬▓Γü║', name: 'Sß║»t(II)',
+    reagent: 'NaOH',
+    observation: 'Tß╗ºa trß║»ng xanh Fe(OH)Γéé, nhanh ch├│ng bß╗ï oxy h├│a ΓåÆ n├óu',
+    color: '#a3e635',
+    equation: 'Fe┬▓Γü║ + 2OHΓü╗ ΓåÆ Fe(OH)ΓééΓåô\n4Fe(OH)Γéé + OΓéé + 2HΓééO ΓåÆ 4Fe(OH)Γéâ',
+    note: 'Kß║┐t tß╗ºa biß║┐n m├áu trong kh├┤ng kh├¡ l├á dß║Ñu hiß╗çu cß╗ºa Fe┬▓Γü║',
+    precipitateColor: '#84cc16',
+  },
+  {
+    ion: 'Fe┬│Γü║', name: 'Sß║»t(III)',
+    reagent: 'NaOH hoß║╖c KSCN',
+    observation: 'Tß╗ºa n├óu ─æß╗Å Fe(OH)Γéâ; KSCN ΓåÆ dung dß╗ïch ─æß╗Å m├íu FeSCN┬▓Γü║',
+    color: '#b45309',
+    equation: 'Fe┬│Γü║ + 3OHΓü╗ ΓåÆ Fe(OH)ΓéâΓåô\nFe┬│Γü║ + SCNΓü╗ ΓåÆ FeSCN┬▓Γü║ (─æß╗Å m├íu)',
+    note: 'Thuß╗æc thß╗¡ KSCN rß║Ñt nhß║íy, d├╣ng ─æß╗â nhß║¡n biß║┐t vß║┐t sß║»t',
+    precipitateColor: '#92400e',
+  },
+  {
+    ion: 'AgΓü║', name: 'Bß║íc',
+    reagent: 'HCl hoß║╖c NaCl',
+    observation: 'Tß╗ºa trß║»ng sß╗»a AgCl, sß║½m th├ánh t├¡m n├óu ngo├ái s├íng',
+    color: '#94a3b8',
+    equation: 'AgΓü║ + ClΓü╗ ΓåÆ AgClΓåô',
+    note: 'AgCl tan trong NHΓéâ d╞░ tß║ío phß╗⌐c tan kh├┤ng m├áu',
+    precipitateColor: '#e2e8f0',
+  },
+  {
+    ion: 'Pb┬▓Γü║', name: 'Ch├¼',
+    reagent: 'HΓééS hoß║╖c NaΓééS',
+    observation: 'Tß╗ºa ─æen PbS',
+    color: '#1e293b',
+    equation: 'Pb┬▓Γü║ + S┬▓Γü╗ ΓåÆ PbSΓåô (─æen)',
+    note: 'Vß╗¢i OHΓü╗ d╞░: tß╗ºa Pb(OH)Γéé trß║»ng ΓåÆ tan th├ánh plumbit (l╞░ß╗íng t├¡nh)',
+    precipitateColor: '#0f172a',
+  },
+  {
+    ion: 'Al┬│Γü║', name: 'Nh├┤m',
+    reagent: 'NaOH (tß╗½ng l╞░ß╗úng nhß╗Å)',
+    observation: 'Tß╗ºa keo trß║»ng Al(OH)Γéâ, tan khi d╞░ NaOH ΓåÆ AlOΓééΓü╗',
+    color: '#f8fafc',
+    equation: 'Al┬│Γü║ + 3OHΓü╗ ΓåÆ Al(OH)ΓéâΓåô\nAl(OH)Γéâ + OHΓü╗ ΓåÆ AlOΓééΓü╗ + 2HΓééO',
+    note: 'T├¡nh l╞░ß╗íng t├¡nh: tan cß║ú trong axit v├á kiß╗üm mß║ính',
+    precipitateColor: '#f1f5f9',
+  },
+  {
+    ion: 'Zn┬▓Γü║', name: 'Kß║╜m',
+    reagent: 'NaOH (tß╗½ng l╞░ß╗úng nhß╗Å)',
+    observation: 'Tß╗ºa trß║»ng Zn(OH)Γéé, tan nhanh khi d╞░ OHΓü╗ ΓåÆ ZnOΓéé┬▓Γü╗',
+    color: '#94a3b8',
+    equation: 'Zn┬▓Γü║ + 2OHΓü╗ ΓåÆ Zn(OH)ΓééΓåô\nZn(OH)Γéé + 2OHΓü╗ ΓåÆ ZnOΓéé┬▓Γü╗ + 2HΓééO',
+    note: 'Zn(OH)Γéé c├▓n tan ─æ╞░ß╗úc trong dung dß╗ïch amoniac d╞░',
+    precipitateColor: '#e2e8f0',
+  },
+  {
+    ion: 'Cr┬│Γü║', name: 'Cr├┤m(III)',
+    reagent: 'NaOH (tß╗½ng l╞░ß╗úng nhß╗Å)',
+    observation: 'Tß╗ºa xanh x├ím Cr(OH)Γéâ, tan th├ánh xanh lß╗Ñc trong kiß╗üm d╞░ ΓåÆ CrOΓééΓü╗',
+    color: '#16a34a',
+    equation: 'Cr┬│Γü║ + 3OHΓü╗ ΓåÆ Cr(OH)ΓéâΓåô\nCr(OH)Γéâ + OHΓü╗ ΓåÆ CrOΓééΓü╗ + 2HΓééO',
+    note: 'L╞░ß╗íng t├¡nh; oxy h├│a CrOΓééΓü╗ trong kiß╗üm ΓåÆ CrOΓéä┬▓Γü╗ v├áng',
+    precipitateColor: '#15803d',
+  },
+  {
+    ion: 'Cd┬▓Γü║', name: 'Cadimi',
+    reagent: 'HΓééS',
+    observation: 'Tß╗ºa v├áng chanh CdS',
+    color: '#facc15',
+    equation: 'Cd┬▓Γü║ + S┬▓Γü╗ ΓåÆ CdSΓåô (v├áng)',
+    note: 'Sß║ún phß║⌐m trung gian quan trß╗ìng trong ph├ón t├¡ch ─æß╗ïnh t├¡nh',
+    precipitateColor: '#eab308',
+  },
+];
+
+// ΓÇöΓÇöΓÇö Bß║óNG NHß║¼N BIß║╛T ANION ΓÇöΓÇöΓÇö
+const ANION_ID = [
+  {
+    ion: 'ClΓü╗', name: 'Clorua',
+    reagent: 'AgNOΓéâ (trong HNOΓéâ lo├úng)',
+    observation: 'Tß╗ºa trß║»ng sß╗»a AgCl kh├┤ng tan trong HNOΓéâ',
+    color: '#f8fafc',
+    equation: 'AgΓü║ + ClΓü╗ ΓåÆ AgClΓåô',
+    note: 'AgCl tan nhanh trong NHΓéâ d╞░, d├╣ng ph├ón biß╗çt vß╗¢i Bromua/Iodua',
+    precipitateColor: '#e2e8f0',
+  },
+  {
+    ion: 'BrΓü╗', name: 'Bromua',
+    reagent: 'AgNOΓéâ',
+    observation: 'Tß╗ºa v├áng nhß║ít (kem) AgBr',
+    color: '#fef3c7',
+    equation: 'AgΓü║ + BrΓü╗ ΓåÆ AgBrΓåô',
+    note: 'AgBr tan chß║¡m trong amoniac ─æß║╖c, kh├┤ng tan trong axit nit╞íric',
+    precipitateColor: '#fde68a',
+  },
+  {
+    ion: 'IΓü╗', name: 'Iodua',
+    reagent: 'AgNOΓéâ',
+    observation: 'Tß╗ºa v├áng ─æß║¡m AgI',
+    color: '#eab308',
+    equation: 'AgΓü║ + IΓü╗ ΓåÆ AgIΓåô',
+    note: 'Ho├án to├án kh├┤ng tan trong amoniac; nhß║¡n biß║┐t nhß╗¥ m├áu sß║»c ─æß║¡m',
+    precipitateColor: '#ca8a04',
+  },
+  {
+    ion: 'SOΓéä┬▓Γü╗', name: 'Sunfat',
+    reagent: 'BaClΓéé (trong HCl lo├úng)',
+    observation: 'Tß╗ºa trß║»ng BaSOΓéä, kh├┤ng tan trong axit',
+    color: '#f8fafc',
+    equation: 'Ba┬▓Γü║ + SOΓéä┬▓Γü╗ ΓåÆ BaSOΓéäΓåô',
+    note: 'Kß║┐t tß╗ºa bß╗ün vß╗»ng nhß║Ñt, d├╣ng ─æß╗ïnh l╞░ß╗úng sunfat',
+    precipitateColor: '#f1f5f9',
+  },
+  {
+    ion: 'SOΓéâ┬▓Γü╗', name: 'Sunfit',
+    reagent: 'HCl hoß║╖c HΓééSOΓéä lo├úng',
+    observation: 'Sß╗ºi bß╗ìt kh├¡ SOΓéé m├╣i hß║»c kh├⌐t nh╞░ di├¬m sinh',
+    color: '#fef9c3',
+    equation: 'SOΓéâ┬▓Γü╗ + 2HΓü║ ΓåÆ SOΓééΓåæ + HΓééO',
+    note: 'D├╣ng giß║Ñy tß║⌐m KΓééCrΓééOΓéç: cam chuyß╗ân sang xanh l├í ─æß╗â x├íc nhß║¡n',
+    precipitateColor: null,
+  },
+  {
+    ion: 'COΓéâ┬▓Γü╗', name: 'Cacbonat',
+    reagent: 'Axit mß║ính (HCl)',
+    observation: 'Sß╗ºi bß╗ìt kh├¡ COΓéé kh├┤ng m├áu, kh├┤ng m├╣i',
+    color: '#e0f2fe',
+    equation: 'COΓéâ┬▓Γü╗ + 2HΓü║ ΓåÆ COΓééΓåæ + HΓééO',
+    note: 'Sß╗Ñc kh├¡ tho├ít ra v├áo n╞░ß╗¢c v├┤i trong g├óy vß║⌐n ─æß╗Ñc',
+    precipitateColor: null,
+  },
+  {
+    ion: 'HCOΓéâΓü╗', name: 'Hi─ærocacbonat',
+    reagent: 'Axit mß║ính (HCl)',
+    observation: 'Sß╗ºi bß╗ìt nhß║╣ COΓéé',
+    color: '#e0f2fe',
+    equation: 'HCOΓéâΓü╗ + HΓü║ ΓåÆ COΓééΓåæ + HΓééO',
+    note: 'HCOΓéâΓü╗ kh├┤ng kß║┐t tß╗ºa vß╗¢i Ca┬▓Γü║ ß╗ƒ ─æiß╗üu kiß╗çn th╞░ß╗¥ng',
+    precipitateColor: null,
+  },
+  {
+    ion: 'S┬▓Γü╗', name: 'Sunfua',
+    reagent: 'Pb(NOΓéâ)Γéé hoß║╖c muß╗æi Bß║íc',
+    observation: 'Tß╗ºa ─æen PbS hoß║╖c AgΓééS tß╗⌐c th├¼',
+    color: '#0f172a',
+    equation: 'Pb┬▓Γü║ + S┬▓Γü╗ ΓåÆ PbSΓåô',
+    note: 'Trong m├┤i tr╞░ß╗¥ng axit giß║úi ph├│ng kh├¡ m├╣i trß╗⌐ng thß╗æi',
+    precipitateColor: '#000000',
+  },
+  {
+    ion: 'POΓéä┬│Γü╗', name: 'Photphat',
+    reagent: 'AgNOΓéâ',
+    observation: 'Tß╗ºa v├áng AgΓéâPOΓéä, tan ─æ╞░ß╗úc trong HNOΓéâ',
+    color: '#fbbf24',
+    equation: '3AgΓü║ + POΓéä┬│Γü╗ ΓåÆ AgΓéâPOΓéäΓåô',
+    note: 'D├╣ng hß╗ùn hß╗úp magi├¬ (Mg┬▓Γü║ + NHΓéäΓü║) tß║ío tß╗ºa trß║»ng ─æß║╖c tr╞░ng',
+    precipitateColor: '#d97706',
+  },
+  {
+    ion: 'NOΓéâΓü╗', name: 'Nitrat',
+    reagent: 'Vß╗Ñn ─Éß╗ông + HΓééSOΓéä ─æß║╖c',
+    observation: 'Kim loß║íi tan, kh├¡ n├óu ─æß╗Å NOΓéé ─æß╗Öc, dung dß╗ïch xanh lam',
+    color: '#7c3aed',
+    equation: 'Cu + 4HNOΓéâ(─æß║╖c) ΓåÆ Cu(NOΓéâ)Γéé + 2NOΓééΓåæ + 2HΓééO',
+    note: 'Tiß║┐n h├ánh trong tß╗º h├║t v├¼ NOΓéé rß║Ñt ─æß╗Öc',
+    precipitateColor: null,
+  },
+];
+
+// ΓÇöΓÇöΓÇö THß╗¼ KH├ì (SPLINT TESTS) ΓÇöΓÇöΓÇö
+const GAS_TESTS = [
+  {
+    gas: 'HΓéé',
+    name: 'Hi─ær├┤',
+    color: '#f0f9ff',
+    smell: 'Kh├┤ng m├áu, kh├┤ng m├╣i',
+    test: '─É╞░a t├án ─æß╗æm ─æang ch├íy v├áo miß╗çng ß╗æng ΓÇö tiß║┐ng nß╗ò "pop" dß╗⌐t kho├ít',
+    mechanism: 'HΓéé kß║┐t hß╗úp OΓéé b├╣ng ch├íy tß║ío n╞░ß╗¢c',
+    equation: '2HΓéé + OΓéé ΓåÆ 2HΓééO',
+    produce: 'Kß║╜m t├íc dß╗Ñng axit: Zn + 2HCl ΓåÆ ZnClΓéé + HΓééΓåæ',
+    safety: 'Nguy c╞í nß╗ò cao nß║┐u nß╗ông ─æß╗Ö tß║¡p trung lß╗¢n',
+    icon: '≡ƒÆÑ',
+  },
+  {
+    gas: 'OΓéé',
+    name: 'Oxi',
+    color: '#e0f2fe',
+    smell: 'Kh├┤ng m├áu, kh├┤ng m├╣i',
+    test: 'Que ─æß╗æm c├▓n t├án ─æß╗Å b├╣ng ch├íy rß╗▒c s├íng trß╗ƒ lß║íi',
+    mechanism: 'Oxi duy tr├¼ v├á t─âng c╞░ß╗¥ng m├únh liß╗çt sß╗▒ ch├íy',
+    equation: 'C + OΓéé ΓåÆ COΓéé (v├á c├íc phß║ún ß╗⌐ng ch├íy kh├íc)',
+    produce: 'Nhiß╗çt ph├ón thuß╗æc t├¡m: 2KMnOΓéä ΓåÆ KΓééMnOΓéä + MnOΓéé + OΓééΓåæ',
+    safety: 'Tr├ính xa c├íc vß║¡t liß╗çu dß╗à ch├íy khi nß╗ông ─æß╗Ö oxi cao',
+    icon: '≡ƒöÑ',
+  },
+  {
+    gas: 'COΓéé',
+    name: 'Cacbon ─Éioxit',
+    color: '#dbeafe',
+    smell: 'Kh├┤ng m├áu, kh├┤ng m├╣i, nß║╖ng h╞ín kh├┤ng kh├¡',
+    test: 'Dß║¡p tß║»t que ─æß╗æm ─æang ch├íy. Sß╗Ñc v├áo Ca(OH)Γéé vß║⌐n ─æß╗Ñc',
+    mechanism: 'Kh├¡ kh├┤ng duy tr├¼ sß╗▒ ch├íy; phß║ún ß╗⌐ng tß║ío canxi cacbonat',
+    equation: 'COΓéé + Ca(OH)Γéé ΓåÆ CaCOΓéâΓåô + HΓééO',
+    produce: '─É├í v├┤i + Axit: CaCOΓéâ + 2HCl ΓåÆ CaClΓéé + HΓééO + COΓééΓåæ',
+    safety: 'G├óy ngß║ít nß║┐u nß╗ông ─æß╗Ö cao trong kh├┤ng gian hß║╣p',
+    icon: '≡ƒî½∩╕Å',
+  },
+  {
+    gas: 'ClΓéé',
+    name: 'Clo',
+    color: '#bbf7d0',
+    smell: 'V├áng lß╗Ñc nhß║ít, m├╣i hß║»c xß╗æc cß╗▒c kß╗│ kh├│ chß╗ïu',
+    test: 'L├ám mß║Ñt m├áu giß║Ñy quß╗│ ß║⌐m hoß║╖c xanh h├│a hß╗ô tinh bß╗Öt-KI',
+    mechanism: 'T├¡nh oxy h├│a mß║ính ─æß║⌐y Iod ra khß╗Åi muß╗æi',
+    equation: 'ClΓéé + 2KI ΓåÆ 2KCl + IΓéé',
+    produce: 'Oxy h├│a HCl: MnOΓéé + 4HCl ΓåÆ MnClΓéé + ClΓééΓåæ + 2HΓééO',
+    safety: 'Cß╗░C ─Éß╗ÿC! Ph├í hß╗ºy ni├¬m mß║íc h├┤ hß║Ñp. Chß╗ë d├╣ng trong tß╗º h├║t',
+    icon: 'Γÿá∩╕Å',
+  },
+  {
+    gas: 'NHΓéâ',
+    name: 'Amoniac',
+    color: '#d1fae5',
+    smell: 'Kh├┤ng m├áu, m├╣i khai xß╗æc ─æß║╖c tr╞░ng',
+    test: 'Giß║Ñy quß╗│ ─æß╗Å ß║⌐m h├│a xanh; kh├│i trß║»ng vß╗¢i axit HCl',
+    mechanism: 'T├¡nh baz╞í yß║┐u l├ám ─æß╗òi m├áu chß╗ë thß╗ï',
+    equation: 'NHΓéâ + HCl ΓåÆ NHΓéäCl (kh├│i trß║»ng)',
+    produce: 'Muß╗æi am├┤ni + Kiß╗üm ─æun n├│ng',
+    safety: 'G├óy k├¡ch ß╗⌐ng mß║ính, d├╣ng tß╗º h├║t',
+    icon: '≡ƒƒó',
+  },
+  {
+    gas: 'SOΓéé',
+    name: 'L╞░u huß╗│nh ─Éioxit',
+    color: '#fef9c3',
+    smell: 'M├╣i hß║»c kh├⌐t di├¬m sinh nß╗ông nß║╖c',
+    test: 'L├ám mß║Ñt m├áu dung dß╗ïch Br├┤m hoß║╖c thuß╗æc t├¡m',
+    mechanism: 'T├¡nh khß╗¡ mß║ính khß╗¡ halogen hoß║╖c mangan',
+    equation: 'SOΓéé + BrΓéé + 2HΓééO ΓåÆ HΓééSOΓéä + 2HBr',
+    produce: 'NaΓééSOΓéâ + Axit lo├úng',
+    safety: '─Éß╗Öc, g├óy m╞░a axit v├á k├¡ch ß╗⌐ng h├┤ hß║Ñp',
+    icon: '≡ƒî½∩╕Å',
+  },
+];
+
+// ΓÇöΓÇöΓÇö QUY Tß║«C ─Éß╗ÿ TAN ΓÇöΓÇöΓÇö
+const SOLUBILITY_RULES = {
+  soluble: [
+    { anion: 'NOΓéâΓü╗ (Nitrat)', rule: 'Tß║Ñt cß║ú ─æß╗üu tan', exceptions: 'Kh├┤ng c├│ ngoß║íi lß╗ç' },
+    { anion: 'CHΓéâCOOΓü╗ (Axetat)', rule: 'Tß║Ñt cß║ú ─æß╗üu tan', exceptions: 'Kh├┤ng c├│ ngoß║íi lß╗ç' },
+    { anion: 'ClΓü╗, BrΓü╗, IΓü╗ (Halogenua)', rule: '─Éa sß╗æ tan', exceptions: 'Kh├┤ng tan: AgΓü║, Pb┬▓Γü║, HgΓéé┬▓Γü║' },
+    { anion: 'SOΓéä┬▓Γü╗ (Sunfat)', rule: '─Éa sß╗æ tan', exceptions: 'Kh├┤ng tan: Ba┬▓Γü║, Pb┬▓Γü║; ├ìt tan: Ca┬▓Γü║, AgΓü║' },
+    { anion: 'Kim loß║íi kiß╗üm & NHΓéäΓü║', rule: 'Tß║Ñt cß║ú ─æß╗üu tan', exceptions: 'Kh├┤ng c├│ ngoß║íi lß╗ç' },
+  ],
+  insoluble: [
+    { anion: 'S┬▓Γü╗ (Sunfua)', rule: '─Éa sß╗æ kh├┤ng tan', exceptions: 'Tan: Kiß╗üm, Kiß╗üm thß╗ò, NHΓéäΓü║' },
+    { anion: 'COΓéâ┬▓Γü╗, POΓéä┬│Γü╗', rule: '─Éa sß╗æ kh├┤ng tan', exceptions: 'Tan: Kiß╗üm, NHΓéäΓü║' },
+    { anion: 'OHΓü╗ (Hi─ær├┤xit)', rule: '─Éa sß╗æ kh├┤ng tan', exceptions: 'Tan: Kiß╗üm; ├ìt tan: Ca┬▓Γü║, Ba┬▓Γü║' },
+  ],
+};
+
+// ΓÇöΓÇöΓÇö Hß╗óP CHß║ñT L╞»ß╗áNG T├ìNH ΓÇöΓÇöΓÇö
+const AMPHOTERIC_COMPOUNDS = [
+  {
+    formula: 'Al(OH)Γéâ', name: 'Nh├┤m hi─ær├┤xit',
+    withAcid: 'Al(OH)Γéâ + 3HCl ΓåÆ AlClΓéâ + 3HΓééO',
+    withBase: 'Al(OH)Γéâ + NaOH ΓåÆ NaAlOΓéé + 2HΓééO',
+    note: 'Tan trong d╞░ kiß╗üm tß║ío aluminat kh├┤ng m├áu.',
+  },
+  {
+    formula: 'Zn(OH)Γéé', name: 'Kß║╜m hi─ær├┤xit',
+    withAcid: 'Zn(OH)Γéé + 2HCl ΓåÆ ZnClΓéé + 2HΓééO',
+    withBase: 'Zn(OH)Γéé + 2NaOH ΓåÆ NaΓééZnOΓéé + 2HΓééO',
+    note: 'Dß╗à tan trong dung dß╗ïch amoniac d╞░ do tß║ío phß╗⌐c.',
+  },
+  {
+    formula: 'Cr(OH)Γéâ', name: 'Cr├┤m(III) hi─ær├┤xit',
+    withAcid: 'Cr(OH)Γéâ + 3HCl ΓåÆ CrClΓéâ + 3HΓééO',
+    withBase: 'Cr(OH)Γéâ + NaOH ΓåÆ NaCrOΓéé + 2HΓééO',
+    note: 'Kß║┐t tß╗ºa m├áu xanh x├ím, tan trong kiß╗üm d╞░ tß║ío dung dß╗ïch xanh lß╗Ñc.',
+  },
+  {
+    formula: 'Pb(OH)Γéé', name: 'Ch├¼(II) hi─ær├┤xit',
+    withAcid: 'Pb(OH)Γéé + 2HNOΓéâ ΓåÆ Pb(NOΓéâ)Γéé + 2HΓééO',
+    withBase: 'Pb(OH)Γéé + 2NaOH ΓåÆ NaΓééPbOΓéé + 2HΓééO',
+    note: 'Chß║Ñt rß║»n m├áu trß║»ng, ├¡t tan trong n╞░ß╗¢c.',
+  },
+  {
+    formula: 'AlΓééOΓéâ', name: 'Nh├┤m oxit (Alumina)',
+    withAcid: 'AlΓééOΓéâ + 6HCl ΓåÆ 2AlClΓéâ + 3HΓééO',
+    withBase: 'AlΓééOΓéâ + 2NaOH ΓåÆ 2NaAlOΓéé + HΓééO',
+    note: 'Th├ánh phß║ºn ch├¡nh cß╗ºa quß║╖ng b├┤xit, nhiß╗çt ─æß╗Ö n├│ng chß║úy rß║Ñt cao.',
+  },
+  {
+    formula: 'ZnO', name: 'Kß║╜m oxit',
+    withAcid: 'ZnO + 2HCl ΓåÆ ZnClΓéé + HΓééO',
+    withBase: 'ZnO + 2NaOH ΓåÆ NaΓééZnOΓéé + HΓééO',
+    note: 'D├╣ng trong y tß║┐ v├á mß╗╣ phß║⌐m (kem chß╗æng nß║»ng).',
+  },
+  {
+    formula: 'NaHCOΓéâ', name: 'Natri hi─ærocacbonat',
+    withAcid: 'NaHCOΓéâ + HCl ΓåÆ NaCl + HΓééO + COΓééΓåæ',
+    withBase: 'NaHCOΓéâ + NaOH ΓåÆ NaΓééCOΓéâ + HΓééO',
+    note: 'Muß╗æi axit nh╞░ng c├│ t├¡nh l╞░ß╗íng t├¡nh yß║┐u, d├╣ng l├ám bß╗Öt nß╗ƒ.',
+  },
+];
+
+// ΓÇöΓÇöΓÇö PHß║óN ß╗¿NG Hß╗«U C╞á TI├èU BIß╗éU ΓÇöΓÇöΓÇö
+const ORGANIC_REACTIONS = [
+  {
+    category: 'Ankan ΓÇö Thß║┐ Clo',
+    title: 'Clo h├│a Metan',
+    application: 'Sß║ún xuß║Ñt dung m├┤i c├┤ng nghiß╗çp v├á chß║Ñt tß║⌐y rß╗¡a.',
+    conditions: '├ünh s├íng khuß║┐ch t├ín (askt)',
+    steps: [
+      { 
+        label: 'CH4 + Cl2', 
+        product: 'CH3Cl + HCl', 
+        name: 'Metyl clorua',
+        mechanism: 'SR (Thß║┐ gß╗æc tß╗▒ do)',
+        yield: '85%',
+        temp: '25┬░C'
+      },
+      { 
+        label: 'CH3Cl + Cl2', 
+        product: 'CH2Cl2 + HCl', 
+        name: 'Metylen clorua',
+        mechanism: 'SR (Thß║┐ gß╗æc tß╗▒ do)',
+        yield: '12%',
+        temp: '25┬░C'
+      }
+    ],
+    note: 'Tß║ío hß╗ùn hß╗úp sß║ún phß║⌐m t├╣y theo tß╗ë lß╗ç Cl2.',
+  },
+  {
+    category: 'Anken ΓÇö Cß╗Öng N╞░ß╗¢c',
+    title: 'Hi─ærat h├│a Etilen',
+    application: 'Sß║ún xuß║Ñt Etanol cho c├┤ng nghiß╗çp d╞░ß╗úc phß║⌐m v├á nhi├¬n liß╗çu sinh hß╗ìc.',
+    conditions: 'Axit H2SO4 lo├úng, t┬░',
+    steps: [
+      { 
+        label: 'CH2=CH2 + H2O', 
+        product: 'C2H5OH', 
+        name: 'R╞░ß╗úu Etylic (Etanol)',
+        mechanism: 'AE (Cß╗Öng Electrophin)',
+        yield: '92%',
+        temp: '300┬░C'
+      },
+    ],
+    note: 'Sß║ún xuß║Ñt theo quy tr├¼nh li├¬n tß╗Ñc trong c├┤ng nghiß╗çp.',
+  },
+  {
+    category: 'Ankin ΓÇö Trime h├│a',
+    title: 'Trime h├│a Axetilen',
+    application: 'Sß║ún xuß║Ñt Benzen ΓÇö nguy├¬n liß╗çu nß╗ün tß║úng cho c├┤ng nghiß╗çp h├│a dß║ºu.',
+    conditions: 'Bß╗Öt C, 600┬░C',
+    steps: [
+      { 
+        label: '3C2H2', 
+        product: 'C6H6', 
+        name: 'Benzen',
+        mechanism: 'Trime h├│a (Trimerization)',
+        yield: '65%',
+        temp: '600┬░C'
+      },
+    ],
+    note: 'Phß║ún ß╗⌐ng v├▓ng h├│a quan trß╗ìng bß║¡c nhß║Ñt trong h├│a hß╗»u c╞í s╞í cß║Ñp.',
+  },
+];
+
+// ΓÇöΓÇöΓÇö NHIß╗åT PH├éN (THERMAL DECOMPOSITION) ΓÇöΓÇöΓÇö
+const THERMAL_DECOMP_LIST = [
+  {
+    compound: 'Kali Clorat (KClO3)',
+    reactions: [
+      {
+        temp: '~500┬░C (c├│ x├║c t├íc MnO2)',
+        equation: '2KClO3 ΓåÆ 2KCl + 3O2Γåæ',
+        type: '─Éiß╗üu chß║┐ Oxi trong ph├▓ng th├¡ nghiß╗çm',
+        note: 'Giß║úi ph├│ng kh├¡ O2 mß║ính mß║╜, duy tr├¼ sß╗▒ ch├íy.',
+      },
+    ],
+    hazards: [
+      'Nguy c╞í nß╗ò cß╗▒c cao nß║┐u lß║½n tß║íp chß║Ñt hß╗»u c╞í, l╞░u huß╗│nh hoß║╖c photpho.',
+      'Dß╗Ñng cß╗Ñ phß║úi sß║ích tuyß╗çt ─æß╗æi tr╞░ß╗¢c khi tiß║┐n h├ánh.',
+    ],
+  },
+  {
+    compound: 'Kali Pemanganat (KMnO4)',
+    reactions: [
+      {
+        temp: '> 240┬░C',
+        equation: '2KMnO4 ΓåÆ K2MnO4 + MnO2 + O2Γåæ',
+        type: 'Ph├ón hß╗ºy giß║úi ph├│ng Oxi',
+        note: 'Chß║Ñt rß║»n m├áu t├¡m chuyß╗ân sang ─æen x├ím.',
+      },
+    ],
+    hazards: [
+      'KMnO4 l├á chß║Ñt oxy h├│a mß║ính, tr├ính tiß║┐p x├║c vß╗¢i da v├á quß║ºn ├ío.',
+      'N├¬n ─æß║╖t mß╗Öt miß║┐ng b├┤ng ß╗ƒ ─æß║ºu ß╗æng nghiß╗çm ─æß╗â chß║╖n bß╗Ñi thuß╗æc t├¡m.',
+    ],
+  },
+  {
+    compound: 'Natri Hidrocacbonat (NaHCO3)',
+    reactions: [
+      {
+        temp: '> 100┬░C',
+        equation: '2NaHCO3 ΓåÆ Na2CO3 + H2O + CO2Γåæ',
+        type: 'Nhiß╗çt ph├ón muß╗æi kiß╗üm',
+        note: 'Tß║ío h╞íi n╞░ß╗¢c v├á kh├¡ l├ám ─æß╗Ñc n╞░ß╗¢c v├┤i trong.',
+      },
+    ],
+    hazards: [
+      'Muß╗æi Na2CO3 n├│ng c├│ t├¡nh ─ân m├▓n nhß║╣.',
+      'Cß║ºn lß║»p ß╗æng nghiß╗çm h╞íi nghi├¬ng ─æß╗â tr├ính n╞░ß╗¢c chß║úy ng╞░ß╗úc lß║íi ─æ├íy g├óy vß╗í ß╗æng.',
+    ],
+  },
+  {
+    compound: 'Canxi Cacbonat (CaCO3)',
+    reactions: [
+      {
+        temp: '~900 - 1000┬░C',
+        equation: 'CaCO3 Γçî CaO + CO2Γåæ',
+        type: 'Nhiß╗çt ph├ón ─æ├í v├┤i (Sß║ún xuß║Ñt v├┤i sß╗æng)',
+        note: 'Phß║ún ß╗⌐ng thu nhiß╗çt mß║ính, cß║ºn cung cß║Ñp nhiß╗çt li├¬n tß╗Ñc.',
+      },
+    ],
+    hazards: [
+      'Nhiß╗çt ─æß╗Ö cß╗▒c cao, nguy c╞í bß╗Ång nhiß╗çt nß║╖ng.',
+      'CaO (v├┤i sß╗æng) phß║ún ß╗⌐ng rß║Ñt mß║ính vß╗¢i n╞░ß╗¢c tß╗Åa nhiß╗çt lß╗¢n.',
+    ],
+  },
+  {
+    compound: '─Éß╗ông (II) Hidroxit (Cu(OH)2)',
+    reactions: [
+      {
+        temp: 'Nhiß╗çt ─æß╗Ö thß║Ñp',
+        equation: 'Cu(OH)2 ΓåÆ CuO + H2O',
+        type: 'Ph├ón hß╗ºy baz╞í kh├┤ng tan',
+        note: 'Kß║┐t tß╗ºa xanh l╞í chuyß╗ân dß║ºn sang bß╗Öt ─æen.',
+      },
+    ],
+    hazards: [
+      'CuO l├á oxit kim loß║íi nß║╖ng, cß║ºn xß╗¡ l├╜ chß║Ñt thß║úi ─æ├║ng quy tr├¼nh.',
+    ],
+  },
+];
+
+// ΓÇöΓÇöΓÇö DANH PH├üP Hß╗óP CHß║ñT (IUPAC & COMMON NAMES) ΓÇöΓÇöΓÇö
+const NONIONIC_NOMENCLATURE = [
+  { formula: 'COΓéé', name: 'Cacbon ─Éioxit (Kh├¡ cacbonic)' },
+  { formula: 'SOΓéé', name: 'L╞░u huß╗│nh ─Éioxit' },
+  { formula: 'NHΓéâ', name: 'Amoniac (Nit╞í Trihi─ærua)' },
+  { formula: 'CHΓéä', name: 'Metan' },
+  { formula: 'CClΓéä', name: 'Cacbon Tetraclorua' },
+  { formula: 'PΓééOΓéà', name: '─Éiphotpho Pentoxit' },
+  { formula: 'NOΓéé', name: 'Nit╞í ─Éioxit' },
+  { formula: 'HCl', name: 'Hi─æro Clorua' },
+  { formula: 'HΓééS', name: 'Hi─æro Sunfua' },
+  // ΓÇöΓÇöΓÇö T├èN TH├öNG Dß╗ñNG ΓÇöΓÇöΓÇö
+  { formula: 'NaHCOΓéâ', name: 'Baking Soda (Thuß╗æc muß╗æi)' },
+  { formula: 'NaΓééCOΓéâ', name: 'Soda Ash (S├┤-─æa)' },
+  { formula: 'Ca(OH)Γéé', name: 'V├┤i t├┤i (N╞░ß╗¢c v├┤i trong)' },
+  { formula: 'CaO', name: 'V├┤i sß╗æng' },
+  { formula: 'CaSOΓéä.2HΓééO', name: 'Thß║ích cao sß╗æng' },
+  { formula: 'CΓééHΓéàOH', name: 'Cß╗ôn (Ethanol/R╞░ß╗úu etylic)' },
+  { formula: 'CHΓéâCOOH', name: 'Giß║Ñm ─ân (Axit axetic 5%)' },
+  { formula: 'CΓéåHΓéêOΓéå', name: 'Vitamin C (Axit ascorbic)' },
+  { formula: 'CΓéëHΓéêOΓéä', name: 'Aspirin' },
+  { formula: 'CΓéåHΓéüΓééOΓéå', name: '─É╞░ß╗¥ng Glucoz╞í' },
+  { formula: 'NaCl', name: 'Muß╗æi ─ân' },
+];
+// ΓÇöΓÇöΓÇö AN TO├ÇN H├ôA Hß╗îC (GHS & PPE) ΓÇöΓÇöΓÇö
+const SAFETY_SIGNS = [
+  { icon: 'Γÿú∩╕Å', title: 'Nguy hiß╗âm Sinh hß╗ìc', desc: 'Chß╗⌐a vi sinh vß║¡t, virus hoß║╖c vß║¡t liß╗çu l├óy nhiß╗àm.', level: 'Cao' },
+  { icon: 'Γÿó∩╕Å', title: 'Nguy hiß╗âm Ph├│ng xß║í', desc: 'Ph├ít xß║í tia alpha, beta hoß║╖c gamma ion h├│a.', level: 'Cß╗▒c Cao' },
+  { icon: '≡ƒöÑ', title: 'Chß║Ñt Dß╗à ch├íy', desc: 'C├│ thß╗â tß╗▒ bß╗æc ch├íy hoß║╖c ch├íy mß║ính khi gß║╖p lß╗¡a.', level: 'Trung b├¼nh' },
+  { icon: '≡ƒº¬', title: 'Chß║Ñt ─én m├▓n', desc: 'Ph├í hß╗ºy kim loß║íi v├á m├┤ sß╗æng (da, mß║»t) khi tiß║┐p x├║c.', level: 'Cao' },
+  { icon: '≡ƒÆÇ', title: '─Éß╗Öc t├¡nh Cß║Ñp t├¡nh', desc: 'G├óy chß║┐t ng╞░ß╗¥i hoß║╖c tß╗òn th╞░╞íng nghi├¬m trß╗ìng nß║┐u h├¡t/nuß╗æt.', level: 'Cß╗▒c Cao' },
+  { icon: 'goggles', title: 'K├¡nh Bß║úo hß╗Ö', desc: 'Bß║úo vß╗ç mß║»t khß╗Åi h├│a chß║Ñt v─âng bß║»n v├á h╞íi ─æß╗Öc.', level: 'Bß║»t buß╗Öc' },
+  { icon: 'gloves', title: 'G─âng tay chß╗ïu h├│a chß║Ñt', desc: 'Bß║úo vß╗ç da tay khi tiß║┐p x├║c vß╗¢i axit/kiß╗üm mß║ính.', level: 'Bß║»t buß╗Öc' },
+  { icon: 'hood', title: 'Tß╗º h├║t (Fume Hood)', desc: 'Tiß║┐n h├ánh c├íc phß║ún ß╗⌐ng sinh kh├¡ ─æß╗Öc hoß║╖c bay h╞íi mß║ính.', level: 'Khuy├¬n d├╣ng' },
+];
+
+// ΓÇöΓÇöΓÇö CHß╗ê THß╗è PH (GRADIENTS) ΓÇöΓÇöΓÇö
+const PH_INDICATORS = [
+  {
+    name: 'Giß║Ñy Quß╗│ T├¡m (Litmus)',
+    range: '5.0 ΓÇö 8.0',
+    gradient: 'linear-gradient(90deg, #ef4444 0%, #a855f7 50%, #3b82f6 100%)',
+    acid: '─Éß╗Å (Acid)',
+    neutral: 'T├¡m (Neutral)',
+    base: 'Xanh (Base)',
+  },
+  {
+    name: 'Phenolphthalein',
+    range: '8.2 ΓÇö 10.0',
+    gradient: 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.4) 70%, #f472b6 100%)',
+    acid: 'Kh├┤ng m├áu (< 8.2)',
+    neutral: 'Kh├┤ng m├áu',
+    base: 'Hß╗ông/T├¡m (> 10.0)',
+  },
+  {
+    name: 'Methyl Da Cam',
+    range: '3.1 ΓÇö 4.4',
+    gradient: 'linear-gradient(90deg, #dc2626 0%, #f97316 50%, #facc15 100%)',
+    acid: '─Éß╗Å',
+    neutral: 'Da cam',
+    base: 'V├áng',
+  }
+];
+
+// ΓÇöΓÇöΓÇö Dß╗ñNG Cß╗ñ TH├ì NGHIß╗åM ΓÇöΓÇöΓÇö
+const LAB_EQUIPMENT = [
+  { name: 'Beaker (Cß╗æc c├│ mß╗Å)', icon: 'beaker', use: '─Éß╗▒ng, pha chß║┐ v├á ─æun n├│ng dung dß╗ïch chß║Ñt lß╗Ång.' },
+  { name: 'Erlenmeyer (B├¼nh tam gi├íc)', icon: 'flask', use: 'Lß║»c trß╗Ön dung dß╗ïch, d├╣ng trong chuß║⌐n ─æß╗Ö thß╗â t├¡ch.' },
+  { name: 'Buret (ß╗Éng chuß║⌐n ─æß╗Ö)', icon: 'buret', use: 'Xß║ú ch├¡nh x├íc thß╗â t├¡ch dung dß╗ïch thuß╗æc thß╗¡ tß╗½ng giß╗ìt mß╗Öt.' },
+  { name: 'Pipet Bß║ºu', icon: 'pipet', use: 'Lß║Ñy mß╗Öt thß╗â t├¡ch chß║Ñt lß╗Ång cß╗æ ─æß╗ïnh vß╗¢i ─æß╗Ö ch├¡nh x├íc cß╗▒c cao.' },
+  { name: 'Test Tube (ß╗Éng nghiß╗çm)', icon: 'test_tube', use: 'Thß╗▒c hiß╗çn c├íc phß║ún ß╗⌐ng quy m├┤ nhß╗Å, quan s├ít hiß╗çn t╞░ß╗úng.' },
+  { name: 'Graduate Cylinder (ß╗Éng ─æong)', icon: 'cylinder', use: '─Éo thß╗â t├¡ch chß║Ñt lß╗Ång vß╗¢i ─æß╗Ö ch├¡nh x├íc trung b├¼nh.' },
+  { name: 'Bunsen Burner (─É├¿n cß╗ôn)', icon: 'burner', use: 'Cung cß║Ñp nguß╗ôn nhiß╗çt cho c├íc phß║ún ß╗⌐ng cß║ºn ─æun n├│ng.' },
+  { name: 'Mortar & Pestle (Cß╗æi ch├áy)', icon: 'mortar', use: 'Nghiß╗ün nhß╗Å c├íc chß║Ñt rß║»n th├ánh dß║íng bß╗Öt mß╗ïn.' },
+  { name: 'Condenser (ß╗Éng ng╞░ng)', icon: 'condenser', use: 'L├ám lß║ính h╞íi n╞░ß╗¢c chuyß╗ân th├ánh lß╗Ång trong qu├í tr├¼nh ch╞░ng cß║Ñt.' },
+];
+
+// ΓÇöΓÇöΓÇö Hß╗Æ S╞á AXIT ─Éß║╢C (CONC. ACIDS) ΓÇöΓÇöΓÇö
+const CONC_ACID_PROFILES = [
+  {
+    acid: 'HΓééSOΓéä ─Éß║╖c (98%)',
+    features: ['T├¡nh oxy h├│a cß╗▒c mß║ính', 'T├¡nh h├ío n╞░ß╗¢c (tß╗Åa nhiß╗çt lß╗¢n)', 'L├ám than h├│a hß╗úp chß║Ñt hß╗»u c╞í'],
+    reactions: [
+      { eq: 'Cu + 2HΓééSOΓéä(─æ) ΓåÆ CuSOΓéä + SOΓééΓåæ + 2HΓééO', note: 'SOΓéé m├╣i hß║»c, ─æß╗Öc.' },
+      { eq: 'CΓéüΓééHΓééΓééOΓéüΓéü ΓåÆ 12C + 11HΓééO', note: 'Than h├│a ─æ╞░ß╗¥ng Glucoz╞í ΓÇö tß╗Åa nhiß╗çt mß║ính.' }
+    ]
+  },
+  {
+    acid: 'HNOΓéâ ─Éß║╖c (68%)',
+    features: ['Oxy h├│a hß║ºu hß║┐t kim loß║íi (trß╗½ Au, Pt)', 'Tß║ío kh├¡ NOΓéé m├áu n├óu ─æß╗Å', 'Thß╗Ñ ─æß╗Öng h├│a Al, Fe (lß║ính)'],
+    reactions: [
+      { eq: 'Cu + 4HNOΓéâ(─æ) ΓåÆ Cu(NOΓéâ)Γéé + 2NOΓééΓåæ + 2HΓééO', note: 'Kh├¡ n├óu ─æß╗Å xuß║Ñt hiß╗çn ngay.' },
+      { eq: 'Fe + HNOΓéâ(─æ, nguß╗Öi) ΓåÆ Bß╗ï thß╗Ñ ─æß╗Öng', note: 'Tß║ío lß╗¢p m├áng oxit bß╗ün vß╗»ng.' }
+    ]
+  },
+  {
+    acid: 'HF (Axit Flohi─æric)',
+    features: ['─én m├▓n thß╗ºy tinh mß║ính mß║╜', 'Cß╗▒c ─æß╗Öc, thß║Ñm qua da hß╗ºy hoß║íi x╞░╞íng', 'Axit yß║┐u vß╗ü ─æiß╗çn ly nh╞░ng cß╗▒c mß║ính vß╗ü hoß║ít t├¡nh'],
+    reactions: [
+      { eq: 'SiOΓéé + 4HF ΓåÆ SiFΓéäΓåæ + 2HΓééO', note: 'Phß║ún ß╗⌐ng d├╣ng ─æß╗â khß║»c chß╗» l├¬n thß╗ºy tinh.' },
+      { eq: 'CaFΓéé + HΓééSOΓéä ΓåÆ CaSOΓéä + 2HF', note: 'Ph╞░╞íng ph├íp ─æiß╗üu chß║┐ HF trong c├┤ng nghiß╗çp.' }
+    ]
+  }
+];
+// ΓÇöΓÇöΓÇö D├âY HOß║áT ─Éß╗ÿNG H├ôA Hß╗îC (METAL REACTIVITY SERIES) ΓÇöΓÇöΓÇö
+const METAL_REACTIVITY = [
+  { symbol: 'K', name: 'Kali', note: 'Phß║ún ß╗⌐ng m├únh liß╗çt vß╗¢i n╞░ß╗¢c lß║ính' },
+  { symbol: 'Na', name: 'Natri', note: 'Phß║ún ß╗⌐ng mß║ính vß╗¢i n╞░ß╗¢c lß║ính' },
+  { symbol: 'Ca', name: 'Canxi', note: 'Phß║ún ß╗⌐ng vß╗¢i n╞░ß╗¢c ß╗ƒ nhiß╗çt ─æß╗Ö th╞░ß╗¥ng' },
+  { symbol: 'Mg', name: 'Magie', note: 'Phß║ún ß╗⌐ng chß║¡m vß╗¢i n╞░ß╗¢c lß║ính, nhanh vß╗¢i n╞░ß╗¢c n├│ng' },
+  { symbol: 'Al', name: 'Nh├┤m', note: 'C├│ lß╗¢p oxit bß║úo vß╗ç, phß║ún ß╗⌐ng vß╗¢i axit mß║ính' },
+  { symbol: 'Zn', name: 'Kß║╜m', note: 'Phß║ún ß╗⌐ng vß╗¢i axit giß║úi ph├│ng H2' },
+  { symbol: 'Fe', name: 'Sß║»t', note: 'Phß║ún ß╗⌐ng vß╗¢i axit lo├úng v├á h╞íi n╞░ß╗¢c n├│ng' },
+  { symbol: 'Ni', name: 'Niken', note: 'Phß║ún ß╗⌐ng chß║¡m vß╗¢i axit' },
+  { symbol: 'Sn', name: 'Thiß║┐c', note: 'Phß║ún ß╗⌐ng vß╗¢i axit khi ─æun n├│ng' },
+  { symbol: 'Pb', name: 'Ch├¼', note: 'Phß║ún ß╗⌐ng yß║┐u vß╗¢i axit lo├úng' },
+  { symbol: 'H', name: '(Hidro)', note: 'Mß╗æc so s├ính hoß║ít ─æß╗Öng h├│a hß╗ìc', isDivider: true },
+  { symbol: 'Cu', name: '─Éß╗ông', note: 'Kh├┤ng phß║ún ß╗⌐ng vß╗¢i axit lo├úng (HCl, H2SO4 lo├úng)' },
+  { symbol: 'Hg', name: 'Thß╗ºy ng├ón', note: 'Kim loß║íi lß╗Ång, hoß║ít ─æß╗Öng yß║┐u' },
+  { symbol: 'Ag', name: 'Bß║íc', note: 'Kim loß║íi qu├╜, chß╗ë tan trong axit oxy h├│a mß║ính' },
+  { symbol: 'Pt', name: 'Bß║ích kim', note: 'Kim loß║íi rß║Ñt tr╞í, chß╗ë tan trong n╞░ß╗¢c c╞░ß╗¥ng toan' },
+  { symbol: 'Au', name: 'V├áng', note: 'Kim loß║íi tr╞í nhß║Ñt, kh├┤ng bß╗ï oxy h├│a trong kh├┤ng kh├¡' },
+];

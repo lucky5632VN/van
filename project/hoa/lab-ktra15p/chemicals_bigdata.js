@@ -95,8 +95,10 @@ function generateHugeDatabase() {
       const aSubVal = c.v / common;
       const cSubStr = cSubVal === 1 ? '' : cSubVal;
       const aSubStr = aSubVal === 1 ? '' : aSubVal;
+      const isCationPoly = (c.id === 'NH4');
+      const cationBase = isCationPoly ? c.id : c.id.replace(/\d+$/, '');
+      const cationPart = (isCationPoly && cSubVal > 1) ? `(${cationBase})` : cationBase;
       const isAnionPoly = a.id.length > 2 || /\d/.test(a.id) || a.id === 'OH';
-      const cationPart = c.id.replace(/\d/, '');
       const anionPart = (isAnionPoly && aSubVal > 1) ? `(${a.id})` : a.id;
       
       const pKspValue = a.pKsp?.[c.id] || null;
@@ -145,11 +147,15 @@ function generateHugeDatabase() {
     subs.forEach(s => {
       positions.forEach(pos => {
         const count = pos.split(',').length;
-        const subFormula = count > 1 ? `(${s.f})${count}` : s.f;
+        const prefixes = { 1: '', 2: 'di', 3: 'tri' };
+        const prefix = prefixes[count] || '';
+        const lowerSub = s.n.toLowerCase();
+        const lowerSk = sk.n.toLowerCase();
+
         generated.push({
           id: `org_${sk.i}_${s.p}_${pos.replace(',','')}`, 
           formula: `${pos}${s.n}-${sk.n} [Ext]`,
-          name: `${pos}${s.n} ${sk.n}`,
+          name: `${pos}${prefix}${lowerSub}${lowerSk}`,
           type: 'organic', isVirtual: true, badges: ['organic', 'warehouse']
         });
       });

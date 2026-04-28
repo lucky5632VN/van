@@ -1,0 +1,225 @@
+/* ——— CHATBOT CSS ——— */
+:root {
+  --chat-primary: #38bdf8;
+  --chat-bg: rgba(15, 23, 42, 0.9);
+  --chat-border: rgba(56, 189, 248, 0.3);
+  --chat-accent: #00ffcc;
+}
+
+#chatbot-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10000;
+  font-family: 'Inter', sans-serif;
+}
+
+#chatbot-toggle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--chat-primary);
+  border: none;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#chatbot-toggle:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.8);
+}
+
+#chatbot-toggle svg {
+  width: 30px;
+  height: 30px;
+  stroke: #fff;
+}
+
+#chatbot-window {
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  width: 380px;
+  height: 550px;
+  background: var(--chat-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--chat-border);
+  border-radius: 16px;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  animation: chatSlideIn 0.3s ease-out;
+}
+
+@keyframes chatSlideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-header {
+  padding: 15px 20px;
+  background: rgba(56, 189, 248, 0.1);
+  border-bottom: 1px solid var(--chat-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  color: var(--chat-primary);
+  letter-spacing: 1px;
+}
+
+.chat-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--chat-accent);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--chat-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 5px var(--chat-accent);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+#chat-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+#chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+#chat-messages::-webkit-scrollbar-thumb {
+  background: var(--chat-border);
+  border-radius: 2px;
+}
+
+.message {
+  max-width: 85%;
+  padding: 10px 15px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  position: relative;
+}
+
+.message.ai {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border-bottom-left-radius: 2px;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: var(--chat-primary);
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+
+.message code {
+  background: rgba(0,0,0,0.3);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+  color: var(--chat-accent);
+}
+
+.chat-input-area {
+  padding: 15px 20px;
+  background: rgba(0,0,0,0.3);
+  border-top: 1px solid var(--chat-border);
+  display: flex;
+  gap: 10px;
+}
+
+#chat-input {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+}
+
+#chat-input:focus {
+  border-color: var(--chat-primary);
+  background: rgba(56, 189, 248, 0.05);
+}
+
+#chat-send {
+  background: var(--chat-primary);
+  border: none;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#chat-send:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px var(--chat-primary);
+}
+
+.typing-indicator {
+  display: none;
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 10px;
+  padding-left: 20px;
+}
+
+/* Hiệu ứng bong bóng thông báo */
+#chat-notification {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  background: #ff3131;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  animation: bounce 0.5s infinite alternate;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-5px); }
+}

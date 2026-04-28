@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="library.css" />
-  <link rel="stylesheet" href="guided_lab.css" />
+  <link rel="stylesheet" href="chatbot.css" />
 </head>
 <body>
   <!-- Global Intro Landing Page -->
@@ -103,16 +103,72 @@
       <!-- Removed experiment-tabs -->
     </div>
     <div class="header-right" id="headerControls" style="display:none; align-items:center; gap: 12px;">
+      <!-- 🎵 Nút nhạc nền -->
+      <div class="music-controller-group" style="display:flex; align-items:center; gap:8px;">
+        <button id="btnToggleMusic" onclick="toggleMusic()" title="Bật/Tắt nhạc nền lab"
+          style="display:flex; align-items:center; gap:6px; background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.4); border-radius:8px; color:#34d399; padding:6px 12px; cursor:pointer; font-size:12px; transition:all 0.2s;">
+          <svg id="iconMusicOn" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+          <svg id="iconMusicOff" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" style="display:none;">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><line x1="2" y1="2" x2="22" y2="22" stroke="#6b7280"/>
+          </svg>
+          <span id="lblMusic">Nhạc: TẮT</span>
+        </button>
+        
+        <select id="selMusicTrack" onchange="changeMusicTrack(this.value)" class="music-track-select" style="display:none; width: 140px;">
+          <option value="science">🔬 Science is Everywhere</option>
+          <option value="ly_keo_chai">🛶 Lý Kéo Chài (Remix)</option>
+          <option value="da_lab_album">🧪 Da LAB Instrumental</option>
+          <option value="son_tung">🔥 Có Chắc Yêu Là Đây</option>
+          <option value="thanh_xuan">✨ Thanh Xuân (Miss Universe)</option>
+          <option value="concentration">🧬 Ambient Drone</option>
+        </select>
+        
+        <div id="volumeControl" style="display:none; align-items:center; gap:6px; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:20px; border:1px solid rgba(255,255,255,0.1);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <input type="range" id="rngVolume" min="0" max="1" step="0.05" value="0.8" oninput="MusicSystem.setVolume(this.value)" style="width:60px; height:4px; cursor:pointer; accent-color:#34d399;">
+        </div>
+      </div>
+      <!-- 🔊 Nút Tắt/Bật âm thanh cảnh báo -->
+      <button id="btnMuteAlert" onclick="toggleAlertSound()" title="Tắt/Bật âm thanh cảnh báo"
+        style="display:flex; align-items:center; gap:6px; background:rgba(251,191,36,0.15); border:1px solid rgba(251,191,36,0.4); border-radius:8px; color:#fbbf24; padding:6px 12px; cursor:pointer; font-size:12px; transition:all 0.2s;">
+        <svg id="iconSound" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+        <svg id="iconMute" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <line x1="22" y1="9" x2="16" y2="15"/>
+          <line x1="16" y1="9" x2="22" y2="15"/>
+        </svg>
+        <span id="lblSound">Âm thanh</span>
+      </button>
       <button class="btn-reset" onclick="resetLab()" style="display:flex; align-items:center; gap: 6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
         Đặt lại
       </button>
-      <button class="btn-guide" onclick="toggleGuide()" style="display:flex; align-items:center; gap: 6px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f8fafc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        Hướng dẫn
+      <button class="btn-qa" onclick="toggleQA()" style="display:flex; align-items:center; gap: 6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f8fafc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+        Hỏi đáp
+      </button>
+      <!-- IDCL: Green Report Button -->
+      <button onclick="window.generateGreenReport && window.generateGreenReport()"
+        title="Xem báo cáo Hóa học Xanh của buổi học"
+        style="display:flex; align-items:center; gap:6px; background:rgba(0,255,204,0.1); border:1px solid rgba(0,255,204,0.4); border-radius:8px; color:#00ffcc; padding:6px 12px; cursor:pointer; font-size:12px; font-family:'Orbitron',sans-serif; transition:all 0.2s;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ffcc" stroke-width="2"><path d="M12 2l2 7h7l-5.5 4 2 7L12 16l-5.5 4 2-7L3 9h7z"/></svg>
+        BÁO CÁO XANH
+      </button>
+      <button onclick="window.OptimizationLab && window.OptimizationLab.show()"
+        title="Phòng thí nghiệm Tối ưu hóa (Haber-Bosch)"
+        style="display:flex; align-items:center; gap:6px; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.4); border-radius:8px; color:#38bdf8; padding:6px 12px; cursor:pointer; font-size:12px; font-family:'Orbitron',sans-serif; transition:all 0.2s;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-6 6-4-4-5 5"/></svg>
+        TỐI ƯU HÓA
       </button>
     </div>
   </header>
+
 
   <!-- Main Layout -->
   <main class="lab-main">
@@ -144,8 +200,8 @@
             <input type="text" id="chemSearch" class="dock-search" placeholder="Tìm tên/công thức..." oninput="filterChemicals(this.value)" />
             <div class="chem-filter-tabs horizontal-scroll-tabs" id="chemFilterTabs">
               <button class="chem-filter-btn active" data-type="all" onclick="filterByType('all')">Tất cả</button>
-              <button class="chem-filter-btn" data-type="acid" onclick="filterByType('acid')">Axit</button>
-              <button class="chem-filter-btn" data-type="base" onclick="filterByType('base')">Bazơ</button>
+              <button class="chem-filter-btn" data-type="acid" onclick="filterByType('acid')">Acid</button>
+              <button class="chem-filter-btn" data-type="base" onclick="filterByType('base')">Base</button>
               <button class="chem-filter-btn" data-type="salt" onclick="filterByType('salt')">Muối</button>
               <button class="chem-filter-btn" data-type="oxide" onclick="filterByType('oxide')">Oxide</button>
               <button class="chem-filter-btn" data-type="metal" onclick="filterByType('metal')">Kim loại</button>
@@ -164,8 +220,21 @@
 
     <!-- Workspace Area (Full Size) -->
     <section class="workspace" id="workspace">
+
+      <!-- Sustainability Monitor (IDCL) -->
+      <div id="sustainability-monitor">
+        <div class="label">ECO-RESERVE (SUSTAINABILITY)</div>
+        <div class="energy-bar-container">
+          <div id="energy-bar-fill"></div>
+        </div>
+        <div id="eco-status">STABLE</div>
+      </div>
+
       <div class="workspace-surface" id="workspaceSurface">
-        <canvas id="effectsCanvas"></canvas>
+      <!-- Background Technical Overlays -->
+      <div class="lab-id-watermark">HỆ THỐNG QUANTUMLAB // PHÒNG THÍ NGHIỆM TỔ 2</div>
+      
+      <canvas id="effectsCanvas"></canvas>
         <div class="workspace-items" id="workspaceItems"></div>
         
         <!-- Persistent Reaction Display (Now a floating widget) -->
@@ -179,6 +248,25 @@
           <div class="ard-body">
             <div id="ardEquation" class="ard-equation"></div>
             <div id="ardObservation" class="ard-observation"></div>
+          </div>
+        </div>
+
+        <!-- Academic Mechanism Display -->
+        <div id="academicExplanationDisplay" class="active-reaction-display" style="top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); width: 450px; padding: 15px; background: rgba(15, 23, 42, 0.95); border-left: 4px solid #facc15; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 1000; display: none; flex-direction: column; position: fixed;">
+          <div class="ard-header" id="acaDragHandle" style="border-bottom: 1px solid rgba(250, 204, 21, 0.3); padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; cursor: grab;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 16px;">💡</span>
+              <span style="font-family: 'Orbitron', sans-serif; font-size: 13px; color: #facc15; font-weight: 600; letter-spacing: 1px;">BẢN CHẤT HÓA HỌC</span>
+            </div>
+            <button class="ard-close" onclick="document.getElementById('academicExplanationDisplay').style.display='none'" style="background: none; border: none; color: #94a3b8; cursor: pointer;">&#x2715;</button>
+          </div>
+          <div id="academicExplanationText" style="font-family: 'Inter', sans-serif; font-size: 13px; color: #e2e8f0; line-height: 1.6; min-height: 50px;"></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1);">
+            <span id="acaStepIndicator" style="font-size: 11px; color: #64748b; font-family: 'Orbitron', sans-serif;">Bước 1 / 1</span>
+            <div style="display: flex; gap: 8px;">
+              <button id="acaBtnPrev" onclick="window.acaPrevStep()" style="background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: 0.2s;">◀ Lùi</button>
+              <button id="acaBtnNext" onclick="window.acaNextStep()" style="background: #facc15; border: none; color: #0f172a; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;">Tiếp ▶</button>
+            </div>
           </div>
         </div>
 
@@ -199,6 +287,7 @@
         <div class="log-entries" id="logEntries"></div>
       </div>
     </section>
+
   </main>
   <script>
     function switchDockTab(tabId) {
@@ -210,26 +299,19 @@
     }
   </script>
 
-  <!-- Step-by-step Guide Panel -->
+  <!-- Knowledge Terminal Panel (Replaced Guide Panel) -->
   <div class="guide-panel" id="guidePanel">
     <div class="guide-header">
+      <!-- Tabs will be injected by qa_system.js initKnowledgeTerminal() -->
       <div class="guide-tabs">
-        <button class="g-tab active" onclick="switchGuideTab('steps')">📝 Thực hành</button>
-        <button class="g-tab" onclick="switchGuideTab('tools')">⚒️ Dụng cụ</button>
+        <button class="g-tab active" id="tab-qa" onclick="switchKnowledgeTab('qa')">❓ Hỏi Đáp</button>
+        <button class="g-tab" id="tab-synth" onclick="switchKnowledgeTab('synth')">🧪 Điều Chế</button>
       </div>
       <button onclick="toggleGuide()" class="btn-close-guide">✕</button>
     </div>
     
-    <div id="guideStepsContent" class="guide-tab-content active">
-      <div class="guide-experiment-title" id="guideTitle"></div>
-      <div class="guide-steps" id="guideSteps"></div>
-      <div class="guide-theory" id="guideTheory"></div>
-    </div>
-
-    <div id="toolManualContent" class="guide-tab-content">
-      <div class="tool-manual-list" id="toolManualList">
-        <!-- Tools docs injected by JS -->
-      </div>
+    <div id="guideStepsContent" class="guide-tab-content active terminal-body">
+      <!-- Content injected by qa_system.js -->
     </div>
   </div>
 
@@ -268,33 +350,37 @@
       
       <div class="setup-grid">
         <div class="setup-item" id="setup-goggles" onclick="toggleSafetyGear('goggles')">
-          <div class="setup-icon" style="transform: scale(1.2);">
+          <div class="scan-line"></div>
+          <div class="setup-icon">
             <svg width="70" height="45" viewBox="0 0 70 45">
               <rect x="3" y="10" width="64" height="28" rx="8" fill="rgba(30,41,59,0.9)" stroke="#475569" stroke-width="2"/>
               <ellipse cx="20" cy="24" rx="13" ry="10" fill="rgba(56,189,248,0.2)" stroke="#60a5fa" stroke-width="1.5"/>
-              <ellipse cx="16" cy="20" rx="4" ry="3" fill="rgba(255,255,255,0.15)"/>
               <ellipse cx="50" cy="24" rx="13" ry="10" fill="rgba(56,189,248,0.2)" stroke="#60a5fa" stroke-width="1.5"/>
-              <ellipse cx="46" cy="20" rx="4" ry="3" fill="rgba(255,255,255,0.15)"/>
-              <rect x="33" y="21" width="4" height="6" rx="2" fill="#334155"/>
-              <rect x="1" y="18" width="4" height="12" rx="2" fill="#475569"/>
-              <rect x="65" y="18" width="4" height="12" rx="2" fill="#475569"/>
             </svg>
           </div>
           <div class="setup-label">Kính bảo hộ</div>
+          <div class="setup-status">CHƯA MẶC</div>
           <div class="setup-check"></div>
         </div>
+
         <div class="setup-item" id="setup-gloves" onclick="toggleSafetyGear('gloves')">
-          <div class="setup-icon" style="transform: scale(1.1);">
-            <svg width="65" height="60" viewBox="0 0 65 60">
-              <path d="M 5 55 L 5 30 C 5 20 12 15 18 15 L 22 15 M 22 15 L 22 5 C 22 2 26 2 26 5 L 26 15 M 26 15 L 26 8 C 26 5 30 5 30 8 L 30 15 M 30 15 L 30 10 C 30 7 34 7 34 10 L 34 15 L 35 30 C 36 40 35 55 35 55 Z" fill="rgba(30,41,59,0.8)" stroke="#475569" stroke-width="1.5"/>
-              <path d="M 60 55 L 60 30 C 60 20 53 15 47 15 L 43 15 M 43 15 L 43 5 C 43 2 39 2 39 5 L 39 15 L 39 8 C 39 5 35 5 35 8 L 35 15 L 35 55 Z" fill="rgba(30,41,59,0.8)" stroke="#475569" stroke-width="1.5"/>
+          <div class="scan-line"></div>
+          <div class="setup-icon">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v10l-2-3a2 2 0 0 0-3 2l5 8h7a2 2 0 0 0 2-2v-7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 11V7" stroke-linecap="round"/>
+              <path d="M10 11V7" stroke-linecap="round"/>
+              <path d="M6 11v-2" stroke-linecap="round"/>
             </svg>
           </div>
           <div class="setup-label">Găng tay</div>
+          <div class="setup-status">CHƯA MẶC</div>
           <div class="setup-check"></div>
         </div>
+
         <div class="setup-item" id="setup-lab-coat" onclick="toggleSafetyGear('lab-coat')">
-          <div class="setup-icon" style="transform: scale(1.1);">
+          <div class="scan-line"></div>
+          <div class="setup-icon">
             <svg width="60" height="70" viewBox="0 0 60 70">
               <path d="M 15 10 L 25 5 L 35 5 L 45 10 L 55 30 L 45 35 L 40 20 L 40 65 L 20 65 L 20 20 L 15 35 L 5 30 Z" fill="rgba(30,41,59,0.8)" stroke="#475569" stroke-width="1.5" />
               <path d="M 30 5 L 30 65" stroke="#475569" stroke-width="1.5" />
@@ -303,6 +389,7 @@
             </svg>
           </div>
           <div class="setup-label">Áo Blouse</div>
+          <div class="setup-status">CHƯA MẶC</div>
           <div class="setup-check"></div>
         </div>
       </div>
@@ -311,16 +398,106 @@
     </div>
   </div>
 
+  <!-- Lab Rules Modal (shown BEFORE safety gear) -->
+  <div class="lab-rules-modal" id="labRulesModal">
+    <div class="lab-rules-box">
+      <div class="lab-rules-header">
+        <div class="lab-rules-icon">🔬</div>
+        <div>
+          <h2 class="lab-rules-title">PHÒNG THÍ NGHIỆM HÓA HỌC</h2>
+          <p class="lab-rules-subtitle">— QUY TẮC AN TOÀN —</p>
+        </div>
+      </div>
+      <div class="lab-rules-grid">
+        <div class="lab-rule-card">
+          <div class="rule-num">1</div>
+          <div class="rule-icon">🪟</div>
+          <div class="rule-text"><strong>Thông thoáng</strong><br/>Đảm bảo phòng thí nghiệm luôn được thông gió tốt trước khi vào làm việc.</div>
+        </div>
+        <div class="lab-rule-card">
+          <div class="rule-num">2</div>
+          <div class="rule-icon">📖</div>
+          <div class="rule-text"><strong>Đọc trước</strong><br/>Đọc kỹ hướng dẫn thí nghiệm và nhãn hóa chất trước khi thực hiện.</div>
+        </div>
+        <div class="lab-rule-card">
+          <div class="rule-num">3</div>
+          <div class="rule-icon">🥼</div>
+          <div class="rule-text"><strong>Mặc bảo hộ</strong><br/>Mặc đầy đủ trang phục bảo hộ: áo blouse, kính, găng tay trước khi vào lab.</div>
+        </div>
+        <div class="lab-rule-card">
+          <div class="rule-num">4</div>
+          <div class="rule-icon">📋</div>
+          <div class="rule-text"><strong>Làm theo hướng dẫn</strong><br/>Chỉ thực hiện đúng theo quy trình đã được giáo viên phê duyệt.</div>
+        </div>
+        <div class="lab-rule-card">
+          <div class="rule-num">5</div>
+          <div class="rule-icon">👁️</div>
+          <div class="rule-text"><strong>Giám sát liên tục</strong><br/>Không để phản ứng đang diễn ra mà không có người giám sát.</div>
+        </div>
+        <div class="lab-rule-card">
+          <div class="rule-num">6</div>
+          <div class="rule-icon">🚫</div>
+          <div class="rule-text"><strong>Không ăn / uống</strong><br/>Tuyệt đối không ăn uống trong phòng thí nghiệm bất kỳ lúc nào.</div>
+        </div>
+        <div class="lab-rule-card">
+          <div class="rule-num">7</div>
+          <div class="rule-icon">⚠️</div>
+          <div class="rule-text"><strong>Hãy cẩn thận</strong><br/>Làm việc cẩn thận, tránh đổ vỡ. Báo ngay cho GV nếu xảy ra tai nạn.</div>
+        </div>
+        <div class="lab-rule-card">
+          <div class="rule-num">8</div>
+          <div class="rule-icon">🙅</div>
+          <div class="rule-text"><strong>Không ngửi / nếm</strong><br/>Tuyệt đối không ngửi trực tiếp hay nếm thử bất kỳ hóa chất nào.</div>
+        </div>
+        <div class="lab-rule-card">
+          <div class="rule-num">9</div>
+          <div class="rule-icon">🧹</div>
+          <div class="rule-text"><strong>Dọn dẹp sạch sẽ</strong><br/>Dọn dẹp dụng cụ, bàn làm việc sạch sẽ sau khi thí nghiệm kết thúc.</div>
+        </div>
+        <div class="lab-rule-card">
+          <div class="rule-num">10</div>
+          <div class="rule-icon">♻️</div>
+          <div class="rule-text"><strong>Xử lý chất thải</strong><br/>Phân loại và xử lý chất thải đúng cách: hóa học, thủy tinh, rác chung.</div>
+        </div>
+        <div class="lab-rule-card" style="grid-column: span 2; background: linear-gradient(135deg,rgba(220,38,38,0.15),rgba(239,68,68,0.08));">
+          <div class="rule-num" style="background:#dc2626;">11</div>
+          <div class="rule-icon">🧯</div>
+          <div class="rule-text"><strong>Biết vị trí thiết bị an toàn</strong><br/>Nhớ vị trí bình cứu hỏa, hộp sơ cứu, lối thoát hiểm và trạm rửa mắt khẩn cấp.</div>
+        </div>
+      </div>
+      <div class="lab-rules-footer">
+        <div class="rules-warning">⚠️ Vi phạm nội quy có thể gây nguy hiểm đến tính mạng bản thân và người xung quanh.</div>
+        <button class="btn-confirm-rules" onclick="confirmLabRules()">✅ Tôi đã đọc và cam kết tuân thủ toàn bộ nội quy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mars Genesis Safety Overlay -->
+  <div id="safety-overlay">
+    <div class="quiz-container">
+      <div class="glitch-text">SYSTEM FREEZE: SAFETY PROTOCOL VIOLATED</div>
+      <div id="quiz-content" style="margin-top: 20px; color: white;"></div>
+    </div>
+  </div>
+
+  <!-- ECO-REPORT Overlay -->
+  <div id="eco-report-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9998; align-items:center; justify-content:center; backdrop-filter:blur(6px);"></div>
+
   <script src="data.js"></script>
   <script src="chemicals_extended.js"></script>
+  <script src="chemicals_idcl.js"></script>
   <script src="chemicals_bigdata.js"></script>
   <script src="chemicals_conc_reactions.js"></script>
+  <script src="chemicals_academic_pro.js"></script>
   <script src="phenomena_db.js"></script>
   <script src="particles.js"></script>
   <script src="chemistry_engine.js"></script>
   <script src="lab.js"></script>
   <script src="library_data.js"></script>
   <script src="library_ui.js"></script>
-  <script src="guided_lab.js"></script>
+  <script src="qa_system.js"></script>
+  <script src="assessment_ai.js"></script>
+  <script src="optimization_lab.js"></script>
+  <script src="gemini_ai.js"></script>
 </body>
 </html>
