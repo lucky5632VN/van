@@ -1,5 +1,6 @@
 /* ——— GEMINI AI INTEGRATION ——— */
-const GEMINI_API_KEY = 'AIzaSyBnLMHsIOi1F3SSJDyepOHQexYTF3MYpBE';
+// Ưu tiên lấy từ biến môi trường (Vite/Vercel), nếu không có mới lấy từ localStorage
+let GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || window.localStorage.getItem('QUANTUM_API_KEY') || '';
 const MODEL_NAME = 'gemini-3.1-flash-lite-preview';
 
 class QuantumCommander {
@@ -69,7 +70,20 @@ class QuantumCommander {
   }
 
   addWelcomeMessage() {
-    this.addMessage('ai', 'Chào mừng đến với Trung tâm Chỉ huy Quantum. Tôi là trợ lý AI giám sát phòng Lab này. Tôi có thể thấy mọi phản ứng bạn đang thực hiện. Bạn cần tôi giải thích điều gì?');
+    if (!GEMINI_API_KEY) {
+      this.addMessage('ai', 'Chào mừng đến với QuantumLab! Để bắt đầu sử dụng trợ lý AI, bạn cần nhập **Gemini API Key**. <br><br> <button onclick="window.chatbot.promptForKey()" style="background:#38bdf8; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">NHẬP API KEY</button>');
+    } else {
+      this.addMessage('ai', 'Chào mừng đến với Trung tâm Chỉ huy Quantum. Tôi là trợ lý AI giám sát phòng Lab này. Tôi có thể thấy mọi phản ứng bạn đang thực hiện. Bạn cần tôi giải thích điều gì?');
+    }
+  }
+
+  promptForKey() {
+    const key = prompt('Vui lòng nhập Google Gemini API Key của bạn:', GEMINI_API_KEY);
+    if (key) {
+      GEMINI_API_KEY = key;
+      window.localStorage.setItem('QUANTUM_API_KEY', key);
+      this.addMessage('ai', '✅ Đã lưu API Key thành công! Tôi đã sẵn sàng hỗ trợ bạn.');
+    }
   }
 
   addMessage(role, text) {
@@ -82,7 +96,7 @@ class QuantumCommander {
       .replace(/\$([^\$]+)\$/g, '<b style="color:#00ffcc">$1</b>') // Công thức hóa học
       .replace(/\n/g, '<br>') // Xuống dòng
       .replace(/^- (.*)$/gm, '• $1') // Gạch đầu dòng
-      .replace(/^([🎯💡⚠️].*):/gm, '<div style="color:#38bdf8; font-weight:bold; margin-top:10px; font-family:Orbitron, sans-serif;">$1</div>'); // Tiêu đề phần
+      .replace(/^([🎯💡🌍⚠️].*):/gm, '<div style="color:#38bdf8; font-weight:bold; margin-top:10px; font-family:Orbitron, sans-serif;">$1</div>'); // Tiêu đề phần
     
     msgDiv.innerHTML = formatted;
     chatMsgs.appendChild(msgDiv);
@@ -177,15 +191,19 @@ class QuantumCommander {
   }
 
   async callGemini(prompt) {
+    if (!GEMINI_API_KEY) {
+      throw new Error('Thiếu API Key. Vui lòng nhấp vào nút "NHẬP API KEY" phía trên.');
+    }
     const context = this.getLabContext();
     const systemPrompt = `
       Bạn là "Quantum Commander", trợ lý AI của QuantumLab. 
       NHIỆM VỤ: Giải thích phản ứng hóa học dựa trên dữ liệu phòng Lab.
       
       QUY TẮC TRÌNH BÀY (BẮT BUỘC):
-      1. Câu trả lời phải chia thành 3 phần rõ ràng: 
+      1. Câu trả lời phải chia thành 4 phần rõ ràng: 
          - 🎯 TÓM TẮT: (Phản ứng là gì)
          - 💡 CƠ CHẾ & HIỆN TƯỢNG: (Dùng gạch đầu dòng ngắn gọn)
+         - 🌍 ỨNG DỤNG THỰC TẾ: (Ứng dụng trong đời sống hoặc công nghiệp)
          - ⚠️ LƯU Ý AN TOÀN: (Cảnh báo nếu có)
       2. KHÔNG sử dụng các ký tự đặc biệt như *, #, _, ~ ở đầu câu hoặc bao quanh từ (trừ khi viết công thức).
       3. Viết công thức hóa học trong cặp dấu $ (Ví dụ: $H2SO4$).

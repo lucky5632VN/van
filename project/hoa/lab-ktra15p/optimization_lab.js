@@ -107,7 +107,9 @@ const OPT_REACTIONS = {
       let msg = "Nhiệt độ lạnh làm cân bằng dịch sang chiều Thuận, tạo N₂O₄ không màu.";
       if (a > 50) msg = "Nhiệt độ nóng làm khí chuyển sang màu nâu đỏ đậm của NO₂.";
       return { yield: y, cost, msg, costUnit: 'bar' };
-    }
+    },
+    reactantColor: "#A52A2A", // Nâu đỏ
+    productColor: "#FFFFFF"   // Trắng (Không màu)
   }
 };
 
@@ -459,13 +461,13 @@ window.OptimizationLab = {
       }
 
       .particle.reactant {
-        background: #38bdf8;
-        box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+        background: #4ade80;
+        box-shadow: 0 0 8px rgba(74, 222, 128, 0.8);
       }
 
       .particle.product {
-        background: #00ffcc;
-        box-shadow: 0 0 12px rgba(0, 255, 204, 1);
+        background: #ff4d4d;
+        box-shadow: 0 0 12px rgba(255, 77, 77, 1);
         width: 16px; height: 16px;
       }
 
@@ -496,8 +498,8 @@ window.OptimizationLab = {
         border-radius: 50%;
       }
 
-      .dot.reactant { background: #38bdf8; }
-      .dot.product { background: #00ffcc; }
+      .dot.reactant { background: #4ade80; }
+      .dot.product { background: #ff4d4d; }
 
       .reaction-equation {
         font-family: 'Orbitron', sans-serif;
@@ -510,9 +512,9 @@ window.OptimizationLab = {
         border: 1px solid rgba(0, 255, 204, 0.2);
       }
 
-      .reaction-equation .reactant { color: #38bdf8; }
+      .reaction-equation .reactant { color: #4ade80; }
       .reaction-equation .arrow { color: #fff; margin: 0 10px; }
-      .reaction-equation .product { color: #00ffcc; }
+      .reaction-equation .product { color: #ff4d4d; }
 
       .ai-insight {
         background: rgba(0, 255, 204, 0.05);
@@ -651,12 +653,20 @@ window.OptimizationLab = {
     // Render Equation
     const eqBox = document.getElementById('opt-eq-box');
     if (eqBox) {
+      const rColor = rxn.reactantColor || '#4ade80';
+      const pColor = rxn.productColor || '#ff4d4d';
       eqBox.innerHTML = `
-        <span class="reactant">${rxn.reactant}</span>
+        <span class="reactant" style="color:${rColor}">${rxn.reactant}</span>
         <span class="arrow" id="eq-arrow">⇌</span>
-        <span class="product">${rxn.product}</span>
+        <span class="product" style="color:${pColor}">${rxn.product}</span>
         <span class="deltaH" style="display:block; font-size:12px; color:#ff3131; text-align:center; margin-top:10px;">${rxn.delta}</span>
       `;
+
+      // Cập nhật legend dots ngay lập tức
+      const legendReactantDot = document.querySelector('.chamber-legend .dot.reactant');
+      const legendProductDot = document.querySelector('.chamber-legend .dot.product');
+      if (legendReactantDot) legendReactantDot.style.background = rColor;
+      if (legendProductDot) legendProductDot.style.background = pColor;
     }
 
     const expText = document.getElementById('opt-explanation-text');
@@ -733,11 +743,28 @@ window.OptimizationLab = {
     if (!chamber) return;
     
     chamber.innerHTML = '';
+    const rxn = OPT_REACTIONS[this.currentReaction];
     const particleCount = 20;
+    const rColor = rxn.reactantColor || '#4ade80';
+    const pColor = rxn.productColor || '#ff4d4d';
+    
+    // Cập nhật legend dots & text
+    const legendReactantItem = document.querySelector('.chamber-legend .legend-item:nth-child(1)');
+    const legendProductItem = document.querySelector('.chamber-legend .legend-item:nth-child(2)');
+    const legendReactantDot = document.querySelector('.chamber-legend .dot.reactant');
+    const legendProductDot = document.querySelector('.chamber-legend .dot.product');
+    
+    if (legendReactantDot) legendReactantDot.style.background = rColor;
+    if (legendProductDot) legendProductDot.style.background = pColor;
+    if (legendReactantItem) legendReactantItem.style.color = rColor;
+    if (legendProductItem) legendProductItem.style.color = pColor;
+
     for (let i = 0; i < particleCount; i++) {
       const p = document.createElement('div');
       const isProduct = Math.random() * 100 < this.state.yield;
       p.className = isProduct ? 'particle product' : 'particle reactant';
+      p.style.background = isProduct ? pColor : rColor;
+      p.style.boxShadow = `0 0 10px ${isProduct ? pColor : rColor}`;
       p.style.left = Math.random() * 90 + '%';
       p.style.top = Math.random() * 90 + '%';
       p.style.animationDelay = Math.random() * 2 + 's';
